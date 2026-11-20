@@ -32,11 +32,18 @@ import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.text.font.FontFamily
+import com.smartnotes.ai.ui.theme.Lufga
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.zIndex
 private val Purple = Color(0xFFB978E8)
 private val DarkText = Color(0xFF171717)
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onNavigateToNotes: () -> Unit = {},
+    onNavigateToYouTubeNotes: () -> Unit = {}
+) {
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -115,23 +122,30 @@ Column(
         Text(
             text = "Hi ",
             fontSize = 30.sp,
+            fontFamily = Lufga,
+            fontWeight = FontWeight.Normal,
             color = Color.Gray
         )
         Text(
             text = "Emily, ",
             fontSize = 30.sp,
+            fontFamily = Lufga,
+            fontWeight = FontWeight.Normal,
             color = Color.Black
         )
         Text(
             text = "i'd be happy",
             fontSize = 30.sp,
+            fontFamily = Lufga,
+            fontWeight = FontWeight.Normal,
             color = Color.Gray
         )
     }
     Text(
         text = "to help what's needed?",
         fontSize = 30.sp,
-        fontWeight = FontWeight.Medium,
+        fontFamily = Lufga,
+        fontWeight = FontWeight.Normal,
         color = DarkText
     )
 }
@@ -142,8 +156,8 @@ Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(234.dp)
-                        .width(166.dp)
-                        .clip(RoundedCornerShape(30.dp)),
+                        .width(166.dp),
+                        //.clip(RoundedCornerShape(30.dp)),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
 
@@ -195,6 +209,7 @@ Column(
                                 Text(
                                     text = "Capture Your\nAudio Note Here",
                                     fontSize = 16.sp,
+                                    fontFamily = Lufga,
                                     fontWeight = FontWeight.Medium,
                                     color = Color.Black,
                                     lineHeight = 23.sp
@@ -205,6 +220,8 @@ Column(
                                 Text(
                                     text = "Begin Audio Note",
                                     fontSize = 14.sp,
+                                    fontFamily = Lufga,
+                                    fontWeight = FontWeight.Thin,
                                     color = Color.Gray
                                 )
                             }
@@ -214,7 +231,7 @@ Column(
                                 onClick = { },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(40.dp),
+                                    .height(40.dp).width(150.dp),
                                 contentPadding = PaddingValues(0.dp),
                                 shape = RoundedCornerShape(20.dp),
                                 colors = ButtonDefaults.buttonColors(
@@ -224,6 +241,8 @@ Column(
                                 Text(
                                     text = "Start recording",
                                     fontSize = 12.sp,
+                                    fontFamily = Lufga,
+                                    fontWeight = FontWeight.Medium,
                                     color = Color.Black
                                 )
                             }
@@ -294,6 +313,7 @@ Column(
                                         Text(
                                             "Upload audio",
                                             fontSize = 16.sp,
+                                            fontFamily = Lufga,
                                             fontWeight = FontWeight.Medium,
                                             color = Color.Black
                                         )
@@ -305,22 +325,31 @@ Column(
                                         )
                                     }
                                 }
-                            }
 
-                            Text(
-                                "New",
-                                color = Color.White,
-                                fontSize = 9.sp,
+
+                            }
+                            Box(
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .offset(y = (-7).dp)
+                                    .offset(x = (-16).dp, y = (-12).dp)
+                                    .zIndex(10f)
                                     .clip(RoundedCornerShape(20.dp))
                                     .background(Color(0xFFFF7777))
-                                    .padding(
-                                        horizontal = 12.dp,
-                                        vertical = 3.dp
-                                    )
-                            )
+                                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "New",
+                                    color = Color.White,
+                                    fontFamily = Lufga,
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+
+
+
                         }
 
                         // NOTE CARD
@@ -381,6 +410,7 @@ Column(
                                 Text(
                                     "Note",
                                     fontSize = 16.sp,
+                                    fontFamily = Lufga,
                                     fontWeight = FontWeight.Medium,
                                     color = Color.White
                                 )
@@ -406,6 +436,7 @@ Column(
 
                     Text(
                         "All Notes",
+                        fontFamily = Lufga,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
@@ -413,6 +444,8 @@ Column(
                     Text(
                         "View all",
                         color = Color.Gray,
+                        fontFamily = Lufga,
+                        fontWeight = FontWeight.Normal,
                         fontSize = 16.sp,
                         modifier = Modifier.clickable { }
                     )
@@ -427,14 +460,15 @@ Column(
                         .width(400.dp)
                         .clip(RoundedCornerShape(25.dp))
                         .background(Color(0xFFD1F1EF))
+                        .clickable { onNavigateToYouTubeNotes() }
                 ) {
                     NoteItem(
                         title = "YouTube URL",
                         subtitle = "Recording & transcribe meeting",
                         icon = painterResource(R.drawable.youtube),
                         background = Color(0xFFD1F1EF),
-
-                        )
+                        onClick = { onNavigateToYouTubeNotes() }
+                    )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -461,7 +495,7 @@ Column(
                 NoteItem(
                     title = "Upload Document",
                     subtitle = "Upload PDF & other File",
-                    icon = painterResource(R.drawable.document),
+                    icon = painterResource(R.drawable.documents_outline),
                     background = Color(0xFFD1F1EF),
 
                 )
@@ -478,7 +512,14 @@ Column(
                 .padding(bottom = 12.dp),
             contentAlignment = Alignment.Center
         ) {
-            BottomNavigationBar()
+            BottomNavigationBar(
+                selectedIndex = 0,
+                onItemSelected = { index ->
+                    if (index == 1) {
+                        onNavigateToNotes()
+                    }
+                }
+            )
         }
     }
 }
@@ -497,7 +538,10 @@ fun NoteItem(
     titleColor: Color = Color.Black,
     subtitleColor: Color = Color.Gray,
     iconSize: Dp = 30.dp,
-    iconColor: Color = Color.Black
+    iconColor: Color = Color.Black,
+    fontFamily: FontFamily=Lufga,
+    fontWeight: FontWeight= FontWeight.Normal,
+    onClick: () -> Unit = {}
 ) {
 
     Row(
@@ -506,7 +550,7 @@ fun NoteItem(
             .height(70.dp)
             .clip(RoundedCornerShape(18.dp))
             .background(background)
-            .clickable { }
+            .clickable { onClick() }
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -534,11 +578,13 @@ fun NoteItem(
             Text(
                 title,
                 fontSize = 16.sp,
+                fontFamily=Lufga,
                 fontWeight = FontWeight.Medium
             )
 
             Text(
                 subtitle,
+                fontFamily=Lufga,
                 fontSize = 16.sp,
                 color = Color.Gray
             )
@@ -576,94 +622,6 @@ fun NoteItem(
                 )
             }
         }
-    }
-}
-
-
-
-
-
-@Composable
-fun BottomNavigationBar() {
-
-    var selectedIndex by remember { mutableStateOf(0) }
-
-    Row(
-        modifier = Modifier
-            .wrapContentWidth()
-            .height(66.dp)
-            .clip(RoundedCornerShape(100.dp))
-            .background(Color(0xFFE6E6E6))
-            .padding(4.dp),
-
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-
-        BottomNavItem(
-            icon = Icons.Default.Home,
-            selected = selectedIndex == 0,
-            onClick = { selectedIndex = 0 }
-        )
-
-        BottomNavItem(
-            icon = Icons.Default.Description,
-            selected = selectedIndex == 1,
-            onClick = { selectedIndex = 1 }
-        )
-
-        BottomNavItem(
-            icon = Icons.Default.ChatBubbleOutline,
-            selected = selectedIndex == 2,
-            onClick = { selectedIndex = 2 }
-        )
-
-        BottomNavItem(
-            icon = Icons.Default.Person,
-            selected = selectedIndex == 3,
-            onClick = { selectedIndex = 3 }
-        )
-    }
-}
-// BOTTOM NAV ITEM
-
-@Composable
-fun BottomNavItem(
-    icon: ImageVector,
-    selected: Boolean = false,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .size(54.dp)
-            .clip(CircleShape)
-            .background(
-                brush = Brush.linearGradient(
-                    colors = if (selected) {
-                        listOf(
-                            Color(0xFF634DE3),
-                            Color(0xFFB978E8)
-                        )
-                    } else {
-                        listOf(
-                            Color(0xFFFDFBFA),
-                            Color(0xFFFDFBFA)
-                        )
-
-                    }
-                )
-            )
-            .clickable { onClick() },
-
-        contentAlignment = Alignment.Center
-    ) {
-
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (selected) Color.White else DarkText,
-            modifier = Modifier.size(26.dp)
-        )
     }
 }
 

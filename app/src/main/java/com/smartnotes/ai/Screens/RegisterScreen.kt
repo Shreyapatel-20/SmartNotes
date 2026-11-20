@@ -57,7 +57,7 @@ fun RegisterScreen(
 
             Text(
                 text = "What should we call you?",
-                fontFamily = FontFamily.Serif,
+                fontFamily = Lufga,
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 30.sp,
                 color = Color.Black
@@ -83,7 +83,7 @@ fun RegisterScreen(
                 singleLine = true,
 
                 textStyle = TextStyle(
-                    fontFamily = FontFamily.Serif,
+                    fontFamily = Lufga,
                     fontSize = 12.sp,
                     color = Color.Black
                 ),
@@ -98,7 +98,8 @@ fun RegisterScreen(
                         if (userName.isEmpty()) {
                             Text(
                                 text = "User Name",
-                                fontFamily = FontFamily.Serif,
+                                fontFamily = Lufga,
+                                fontWeight= FontWeight.Normal,
                                 fontSize = 16.sp,
                                 color = Color(0xFF808080)
                             )
@@ -133,7 +134,7 @@ fun RegisterScreen(
             ) {
                 Text(
                     text = "Continue",
-                    fontFamily = FontFamily.Serif,
+                    fontFamily = Lufga,
                     fontSize = 20.sp,
                     color = Color.White
                 )
