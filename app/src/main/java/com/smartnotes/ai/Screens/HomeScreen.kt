@@ -42,7 +42,11 @@ private val DarkText = Color(0xFF171717)
 @Composable
 fun HomeScreen(
     onNavigateToNotes: () -> Unit = {},
-    onNavigateToYouTubeNotes: () -> Unit = {}
+    onNavigateToYouTubeNotes: () -> Unit = {},
+    onNavigateToRecordingAudio: () -> Unit = {},
+    onNavigateToAudioFiles: () -> Unit = {},
+    onNavigateToDocumentFiles: () -> Unit = {},
+    onNavigateToMeetingLinks: () -> Unit = {}
 ) {
 
     Box(
@@ -228,7 +232,7 @@ Column(
                             Spacer(modifier = Modifier.height(7.dp))
 
                             Button(
-                                onClick = { },
+                                onClick = onNavigateToRecordingAudio,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(40.dp).width(150.dp),
@@ -270,7 +274,7 @@ Column(
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(30.dp))
                                     .background(Color(0xFFD7D0FE))
-                                    .clickable { }
+                                    .clickable { onNavigateToAudioFiles() }
                             ) {
                                 Image(
                                     painter = painterResource(R.drawable.uploadaudio),
@@ -477,7 +481,8 @@ Column(
                     title = "Meeting Link",
                     subtitle = "Recording & transcribe meeting",
                     icon = painterResource(R.drawable.video),
-                    background = Color(0xFFF0E1FF)
+                    background = Color(0xFFF0E1FF),
+                    onClick = onNavigateToMeetingLinks
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -488,7 +493,7 @@ Column(
                     subtitle = "Recording with Microphone",
                     icon = painterResource(R.drawable.microphone),
                     background = Color(0xFFFFE5CA),
-
+                    onClick = onNavigateToRecordingAudio
                 )
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -497,7 +502,7 @@ Column(
                     subtitle = "Upload PDF & other File",
                     icon = painterResource(R.drawable.documents_outline),
                     background = Color(0xFFD1F1EF),
-
+                    onClick = onNavigateToDocumentFiles
                 )
             }
 
