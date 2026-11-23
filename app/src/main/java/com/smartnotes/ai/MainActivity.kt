@@ -5,15 +5,21 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
+import com.smartnotes.ai.Screens.AddScheduleMeetingScreen
 import com.smartnotes.ai.Screens.AddYouTubeLinkScreen
 import com.smartnotes.ai.Screens.AudioFilesScreen
 import com.smartnotes.ai.Screens.DocumentFilesScreen
 import com.smartnotes.ai.Screens.HomeScreen
 import com.smartnotes.ai.Screens.MeetingLinksScreen
 import com.smartnotes.ai.Screens.MeetingNotesScreen
+import com.smartnotes.ai.Screens.NewNotesScreen
 import com.smartnotes.ai.Screens.NotesScreen
+import com.smartnotes.ai.Screens.ProfileScreen
+import com.smartnotes.ai.Screens.RecentMeetingLinksScreen
+import com.smartnotes.ai.Screens.RecentMeetingNotesScreen
 import com.smartnotes.ai.Screens.RecordingAudioScreen
 import com.smartnotes.ai.Screens.RegisterScreen
+import com.smartnotes.ai.Screens.ScheduleTimelineScreen
 import com.smartnotes.ai.Screens.YouTubeNotesScreen
 
 class MainActivity : ComponentActivity() {
@@ -40,6 +46,9 @@ class MainActivity : ComponentActivity() {
                         onNavigateToNotes = {
                             currentScreen = "notes"
                         },
+                        onNavigateToNewNotes = {
+                            currentScreen = "new_notes"
+                        },
                         onNavigateToYouTubeNotes = {
                             currentScreen = "youtube_notes"
                         },
@@ -58,13 +67,83 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
+                "new_notes" -> {
+                    NewNotesScreen(
+                        onBackClick = {
+                            currentScreen = "home"
+                        }
+                    )
+                }
+
                 "meeting_links" -> {
                     MeetingLinksScreen(
                         onBackClick = {
                             currentScreen = "home"
                         },
+                        onRecentTabClick = {
+                            currentScreen = "recent_meeting_links"
+                        },
                         onMeetingCardClick = {
                             currentScreen = "meeting_notes"
+                        },
+                        onShowScheduleClick = {
+                            currentScreen = "schedule_meeting"
+                        },
+                        onScheduleMeetingClick = {
+                            currentScreen = "add_schedule_meeting"
+                        }
+                    )
+                }
+
+                "recent_meeting_links" -> {
+                    RecentMeetingLinksScreen(
+                        onBackClick = {
+                            currentScreen = "home"
+                        },
+                        onUpcomingTabClick = {
+                            currentScreen = "meeting_links"
+                        },
+                        onMeetingCardClick = {
+                            currentScreen = "recent_meeting_notes"
+                        },
+                        onShowScheduleClick = {
+                            currentScreen = "schedule_meeting"
+                        },
+                        onScheduleMeetingClick = {
+                            currentScreen = "add_schedule_meeting"
+                        }
+                    )
+                }
+
+                "recent_meeting_notes" -> {
+                    RecentMeetingNotesScreen(
+                        onBackClick = {
+                            currentScreen = "recent_meeting_links"
+                        }
+                    )
+                }
+
+                "schedule_meeting" -> {
+                    ScheduleTimelineScreen(
+                        onBackClick = {
+                            currentScreen = "recent_meeting_links"
+                        },
+                        onScheduleTabClick = {
+                            currentScreen = "add_schedule_meeting"
+                        }
+                    )
+                }
+
+                "add_schedule_meeting" -> {
+                    AddScheduleMeetingScreen(
+                        onBackClick = {
+                            currentScreen = "recent_meeting_links"
+                        },
+                        onMeetingToggleClick = {
+                            currentScreen = "schedule_meeting"
+                        },
+                        onContinueClick = {
+                            currentScreen = "recent_meeting_links"
                         }
                     )
                 }
@@ -136,6 +215,21 @@ class MainActivity : ComponentActivity() {
                         },
                         onContinueClick = { _, _ ->
                             currentScreen = "youtube_notes"
+                        }
+                    )
+                }
+
+                "profile" -> {
+                    ProfileScreen(
+                        onBackClick = {
+                            currentScreen = "home"
+                        },
+                        onBottomNavItemSelected = { index ->
+                            when (index) {
+                                0 -> currentScreen = "home"
+                                1 -> currentScreen = "notes"
+                                3 -> currentScreen = "profile"
+                            }
                         }
                     )
                 }

@@ -104,16 +104,16 @@ fun MeetingNotesScreen(
                 item {
                     Column(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(24.dp))
-                            .background(Color(0xFFFFE0E0))
+                            .fillMaxWidth().height(96.dp).width(400.dp)
+                            .clip(RoundedCornerShape(30.dp))
+                            .background(Color(0xFFFEDBE3))
                             .padding(20.dp)
                     ) {
                         Text(
                             text = "Weekly Team Meeting",
                             fontFamily = Lufga,
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             color = DarkText
                         )
 
@@ -136,7 +136,7 @@ fun MeetingNotesScreen(
                                 Text(
                                     text = "June 18, 2026",
                                     fontFamily = Lufga,
-                                    fontSize = 12.sp,
+                                    fontSize = 14.sp,
                                     color = Color(0xFF777780)
                                 )
                             }
@@ -153,7 +153,7 @@ fun MeetingNotesScreen(
                                 Text(
                                     text = "Google meet",
                                     fontFamily = Lufga,
-                                    fontSize = 12.sp,
+                                    fontSize = 14.sp,
                                     color = Color(0xFF777780)
                                 )
                             }
@@ -170,14 +170,13 @@ fun MeetingNotesScreen(
                                 Text(
                                     text = "8 Member",
                                     fontFamily = Lufga,
-                                    fontSize = 12.sp,
+                                    fontSize = 14.sp,
                                     color = Color(0xFF777780)
                                 )
                             }
                         }
                     }
                 }
-
                 // KEY HIGHLIGHTS CARD
                 item {
                     Column(

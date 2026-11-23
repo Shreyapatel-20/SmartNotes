@@ -42,6 +42,7 @@ private val DarkText = Color(0xFF171717)
 @Composable
 fun HomeScreen(
     onNavigateToNotes: () -> Unit = {},
+    onNavigateToNewNotes: () -> Unit = {},
     onNavigateToYouTubeNotes: () -> Unit = {},
     onNavigateToRecordingAudio: () -> Unit = {},
     onNavigateToAudioFiles: () -> Unit = {},
@@ -172,6 +173,7 @@ Column(
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(22.dp))
                             .background(Color(0xFFFFECBA))
+                            .clickable { onNavigateToAudioFiles() }
                     ) {
 
                         // Sunburst background graphic centered behind top-left mic circle
@@ -232,7 +234,7 @@ Column(
                             Spacer(modifier = Modifier.height(7.dp))
 
                             Button(
-                                onClick = onNavigateToRecordingAudio,
+                                onClick = onNavigateToAudioFiles,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(40.dp).width(150.dp),
@@ -363,7 +365,7 @@ Column(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(30.dp))
                                 .background(Color(0xFF242529))
-                                .clickable { }
+                                .clickable { onNavigateToNewNotes() }
                         ) {
                             Image(
                                 painter = painterResource(R.drawable.uploadaudio),

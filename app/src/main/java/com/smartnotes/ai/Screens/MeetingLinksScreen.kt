@@ -2,6 +2,7 @@ package com.smartnotes.ai.Screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,9 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccessTime
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,11 +30,12 @@ import androidx.compose.ui.unit.sp
 import com.smartnotes.ai.R
 import com.smartnotes.ai.ui.theme.Lufga
 
-private val DarkText = Color(0xFF000000)
+private val DarkText = Color.Black
 
 @Composable
 fun MeetingLinksScreen(
     onBackClick: () -> Unit = {},
+    onRecentTabClick: () -> Unit = {},
     onMeetingCardClick: () -> Unit = {},
     onShowScheduleClick: () -> Unit = {},
     onScheduleMeetingClick: () -> Unit = {}
@@ -66,12 +65,13 @@ fun MeetingLinksScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 48.dp, bottom = 12.dp)
-                    .height(42.dp),
+                    .height(24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)
+                        .background(Color.Transparent)
                         .clickable { onBackClick() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -96,13 +96,13 @@ fun MeetingLinksScreen(
                 Spacer(modifier = Modifier.width(36.dp))
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(15.dp))
 
             // SEARCH BAR
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp).width(400.dp)
+                    .height(50.dp)
                     .clip(RoundedCornerShape(50))
                     .background(Color.White)
                     .padding(horizontal = 16.dp),
@@ -132,6 +132,7 @@ fun MeetingLinksScreen(
                                 text = "Search",
                                 fontFamily = Lufga,
                                 fontSize = 16.sp,
+                                fontWeight = FontWeight.Normal,
                                 color = Color(0xFF999999)
                             )
                         }
@@ -146,9 +147,8 @@ fun MeetingLinksScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp)
-                    .clip(RoundedCornerShape(30.dp))
-                    .padding(4.dp),
+                    .height(48.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Upcoming Tab
@@ -156,15 +156,18 @@ fun MeetingLinksScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(if (selectedTab == 0) Color.Black else Color(0xff808080))
+                        .clip(RoundedCornerShape(30.dp))
+                        .then(
+                            if (selectedTab == 0) Modifier.background(Color.Black)
+                            else Modifier.border(1.dp, Color(0xFFB0B0B0), RoundedCornerShape(30.dp))
+                        )
                         .clickable { selectedTab = 0 },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Upcoming",
                         fontFamily = Lufga,
-                        fontSize = 20.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
                         color = if (selectedTab == 0) Color.White else DarkText
                     )
@@ -175,15 +178,21 @@ fun MeetingLinksScreen(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(26.dp))
-                        .background(if (selectedTab == 1) Color.Black else Color.Transparent)
-                        .clickable { selectedTab = 1 },
+                        .clip(RoundedCornerShape(30.dp))
+                        .then(
+                            if (selectedTab == 1) Modifier.background(Color.Black)
+                            else Modifier.border(1.dp, Color(0xFFB0B0B0), RoundedCornerShape(30.dp))
+                        )
+                        .clickable { 
+                            selectedTab = 1
+                            onRecentTabClick()
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Recent",
                         fontFamily = Lufga,
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Medium,
                         color = if (selectedTab == 1) Color.White else DarkText
                     )
@@ -228,9 +237,10 @@ fun MeetingLinksScreen(
 
                 // BOTTOM ACTION CARDS
                 item {
-                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 20.dp),
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         // Left Action Card
@@ -336,7 +346,8 @@ fun MeetingCard(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxWidth().height(199.dp).width(400.dp)
+            .fillMaxWidth()
+            .height(210.dp)
             .clip(RoundedCornerShape(30.dp))
             .background(backgroundColor)
             .clickable { onCardClick() }
@@ -426,7 +437,8 @@ fun MeetingCard(
         // INNER COUNTDOWN AND JOIN BOX
         Row(
             modifier = Modifier
-                .fillMaxWidth().height(83.dp).width(372.dp)
+                .fillMaxWidth()
+                .height(88.dp)
                 .clip(RoundedCornerShape(20.dp))
                 .background(innerBoxColor)
                 .padding(horizontal = 16.dp, vertical = 12.dp),

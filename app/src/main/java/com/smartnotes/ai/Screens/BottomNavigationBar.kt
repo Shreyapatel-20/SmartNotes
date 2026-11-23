@@ -47,7 +47,7 @@ fun BottomNavigationBar(
         )
 
         BottomNavItem(
-            icon = painterResource(R.drawable.chat),
+            icon = painterResource(R.drawable.ai_magic),
             selected = selectedIndex == 2,
             onClick = { onItemSelected(2) }
         )
