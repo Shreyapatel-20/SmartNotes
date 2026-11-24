@@ -1,7 +1,5 @@
-
 package com.smartnotes.ai.Screens
 
-import android.graphics.fonts.Font
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,24 +11,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.smartnotes.ai.R
+import com.smartnotes.ai.db.UserDatabaseHelper
 import com.smartnotes.ai.ui.theme.*
 
 @Composable
 fun RegisterScreen(
     onContinueClick: (String) -> Unit
 ) {
+    val isPreview = LocalInspectionMode.current
+    val context = LocalContext.current
+    val dbHelper = remember { if (isPreview) null else UserDatabaseHelper(context) }
 
-    var userName by remember {
-        mutableStateOf("")
-    }
+    var userName by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -68,7 +70,12 @@ fun RegisterScreen(
             BasicTextField(
                 value = userName,
                 onValueChange = { newValue ->
-                    userName = newValue
+                    if (newValue.all { it.isLetter() || it.isWhitespace() }) {
+                        userName = newValue
+                        errorMessage = ""
+                    } else {
+                        errorMessage = "Numbers and special characters are not allowed"
+                    }
                 },
 
                 modifier = Modifier
@@ -84,7 +91,7 @@ fun RegisterScreen(
 
                 textStyle = TextStyle(
                     fontFamily = Lufga,
-                    fontSize = 12.sp,
+                    fontSize = 16.sp,
                     color = Color.Black
                 ),
 
@@ -99,7 +106,7 @@ fun RegisterScreen(
                             Text(
                                 text = "User Name",
                                 fontFamily = Lufga,
-                                fontWeight= FontWeight.Normal,
+                                fontWeight = FontWeight.Normal,
                                 fontSize = 16.sp,
                                 color = Color(0xFF808080)
                             )
@@ -110,12 +117,30 @@ fun RegisterScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(50.dp))
+            if (errorMessage.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = errorMessage,
+                    fontFamily = Lufga,
+                    fontSize = 13.sp,
+                    color = Color.Red,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            Spacer(modifier = Modifier.height(40.dp))
 
             Button(
                 onClick = {
-                    if (userName.isNotBlank()) {
-                        onContinueClick(userName)
+                    val trimmedName = userName.trim()
+                    if (trimmedName.isEmpty()) {
+                        errorMessage = "Please enter your user name"
+                    } else if (!trimmedName.all { it.isLetter() || it.isWhitespace() }) {
+                        errorMessage = "Numbers and special characters are not allowed"
+                    } else {
+                        errorMessage = ""
+                        dbHelper?.saveUserName(trimmedName)
+                        onContinueClick(trimmedName)
                     }
                 },
 

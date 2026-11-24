@@ -1,6 +1,5 @@
 package com.smartnotes.ai.Screens
 
-
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,12 +8,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -22,12 +25,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartnotes.ai.R
-import android.R.attr.icon
-import androidx.compose.foundation.border
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.ui.modifier.modifierLocalConsumer
+import com.smartnotes.ai.db.NoteModel
+import com.smartnotes.ai.db.UserDatabaseHelper
 import com.smartnotes.ai.ui.theme.Lufga
 
 private val DarkText = Color(0xFF171717)
@@ -36,18 +35,31 @@ private val DarkText = Color(0xFF171717)
 fun NewNotesScreen(
     onBackClick: () -> Unit = {},
     onNewNoteClick: () -> Unit = {},
-    onNoteClick: (String) -> Unit = {}
-){
-    val notesPrevious = listOf(
-        "Exam IMP Question",
-        "Exam IMP Question",
-        "Exam IMP Question"
-    )
+    onNoteClick: (Int, String, String) -> Unit = { _, _, _ -> }
+) {
+    val isPreview = LocalInspectionMode.current
+    val context = LocalContext.current
+    val dbHelper = remember { if (isPreview) null else UserDatabaseHelper(context) }
 
-    val notesFebruary = listOf(
-        "Aman Preparation",
-        "Monthly Expense"
-    )
+    var notesList by remember {
+        mutableStateOf(
+            if (isPreview) {
+                listOf(
+                    NoteModel(1, "Exam IMP Question", "08/01/26   What is UI/UX?", "08/01/26"),
+                    NoteModel(2, "Aman Preparation", "08/01/26   Study preparation", "08/01/26"),
+                    NoteModel(3, "Monthly Expense", "08/01/26   Monthly budget", "08/01/26")
+                )
+            } else {
+                emptyList()
+            }
+        )
+    }
+
+    LaunchedEffect(Unit) {
+        if (!isPreview && dbHelper != null) {
+            notesList = dbHelper.getAllNotes()
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -84,7 +96,7 @@ fun NewNotesScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector =Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back",
                         tint = DarkText,
                         modifier = Modifier.size(24.dp)
@@ -110,51 +122,46 @@ fun NewNotesScreen(
             // NOTES LIST
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
 
-                // PREVIOUS 30 DAYS
                 item {
                     Text(
-                        text = "Previous 30 Days",
+                        text = "All Saved Notes",
                         fontSize = 18.sp,
                         fontFamily = Lufga,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF242529),
-                        modifier = Modifier.padding(bottom = 20.dp)
+                        modifier = Modifier.padding(bottom = 12.dp)
                     )
                 }
 
-                items(notesPrevious) { note ->
-
-                    NoteCard(
-                        title = note,
-                        onClick = { onNoteClick(note) }
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                }
-
-                // FEBRUARY HEADING
-                item {
-                    Spacer(modifier = Modifier.height(15.dp))
-
-                    Text(
-                        text = "February",
-                        fontFamily = Lufga,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Black
-                    )
-                    Spacer(modifier = Modifier.height(15.dp))
-
-                }
-
-                items(notesFebruary) { note ->
-                    Spacer(modifier = Modifier.height(10.dp))
-                    NoteCard(
-                        title = note,
-                        onClick = { onNoteClick(note) }
-                    )
+                if (notesList.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No notes saved yet.\nClick '+ new Notes' below to create one!",
+                                fontFamily = Lufga,
+                                fontSize = 14.sp,
+                                color = Color(0xFF808080),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    items(notesList) { note ->
+                        val subText = note.subtitle.ifBlank { "${note.dateText}   Saved note" }
+                        NoteCard(
+                            title = note.title,
+                            subtitle = subText,
+                            onClick = { onNoteClick(note.id, note.title, subText) }
+                        )
+                    }
                 }
             }
 
@@ -163,14 +170,13 @@ fun NewNotesScreen(
             // NEW NOTE BUTTON
             Box(
                 modifier = Modifier
-                    .padding(vertical = 39.dp, horizontal = 0.dp)
+                    .padding(vertical = 24.dp, horizontal = 0.dp)
             ) {
                 Button(
                     onClick = onNewNoteClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(60.dp)
-                        .width(400.dp),
+                        .height(60.dp),
                     shape = RoundedCornerShape(40.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Black
@@ -201,6 +207,7 @@ fun NewNotesScreen(
 @Composable
 fun NoteCard(
     title: String,
+    subtitle: String = "08/01/26   What is UI/UX?",
     onClick: () -> Unit
 ) {
 
@@ -208,7 +215,6 @@ fun NoteCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(70.dp)
-            .width(400.dp)
             .clip(RoundedCornerShape(30.dp))
             .background(Color(0xffF2E2FE))
             .clickable { onClick() }
@@ -226,7 +232,7 @@ fun NoteCard(
         ) {
             Icon(
                 painter = painterResource(R.drawable.tabler_notes),
-                contentDescription = "tablar notes",
+                contentDescription = "tabler notes",
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -252,7 +258,7 @@ fun NoteCard(
 
             Text(
                 fontFamily = Lufga,
-                text = "08/01/26   What is UI/UX?",
+                text = subtitle,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
                 color = Color(0xFF777780),
@@ -261,6 +267,7 @@ fun NoteCard(
         }
     }
 }
+
 @Preview(showBackground = true)
 @Composable
 fun NewNotesScreenPreview() {

@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -27,32 +30,43 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartnotes.ai.R
+import com.smartnotes.ai.db.DocumentModel
+import com.smartnotes.ai.db.UserDatabaseHelper
 import com.smartnotes.ai.ui.theme.Lufga
 
 private val DarkText = Color(0xFF242529)
-
-data class DocumentFileData(
-    val title: String,
-    val details: String = "12 MB • 12/01/16",
-    val backgroundColor: Color = Color(0xFFF1E4FF)
-)
 
 @Composable
 fun DocumentFilesScreen(
     onBackClick: () -> Unit = {},
     onNewDocumentClick: () -> Unit = {},
-    onDocumentClick: (String) -> Unit = {}
+    onDocumentClick: (String, String, String) -> Unit = { _, _, _ -> }
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    val isPreview = LocalInspectionMode.current
+    val context = LocalContext.current
+    val dbHelper = remember { if (isPreview) null else UserDatabaseHelper(context) }
 
-    val documentFiles = remember {
-        listOf(
-            DocumentFileData(
-                title = "Resume",
-                details = "12 MB • 12/01/16",
-                backgroundColor = Color(0xFFF1E4FF)
-            )
+    var searchQuery by remember { mutableStateOf("") }
+    var documentsList by remember {
+        mutableStateOf(
+            if (isPreview) {
+                listOf(DocumentModel(1, "Resume", "12 MB • 12/01/16", ""))
+            } else {
+                emptyList()
+            }
         )
+    }
+
+    LaunchedEffect(Unit) {
+        if (!isPreview && dbHelper != null) {
+            documentsList = dbHelper.getAllDocuments()
+        }
+    }
+
+    val filteredList = documentsList.filter { doc ->
+        searchQuery.isBlank() ||
+        doc.title.contains(searchQuery, ignoreCase = true) ||
+        doc.details.contains(searchQuery, ignoreCase = true)
     }
 
     Box(
@@ -170,11 +184,38 @@ fun DocumentFilesScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(bottom = 10.dp)
             ) {
-                items(documentFiles) { file ->
-                    DocumentCard(
-                        data = file,
-                        onClick = { onDocumentClick(file.title) }
-                    )
+                if (filteredList.isEmpty()) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (searchQuery.isNotBlank()) "No documents found matching '$searchQuery'" else "No documents uploaded yet.",
+                                fontFamily = Lufga,
+                                fontSize = 14.sp,
+                                color = Color.Gray,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    items(
+                        items = filteredList,
+                        key = { it.id }
+                    ) { doc ->
+                        SwipeableDocumentCard(
+                            title = doc.title,
+                            details = doc.details,
+                            onClick = { onDocumentClick(doc.title, doc.details, doc.fileUri) },
+                            onDelete = {
+                                dbHelper?.deleteDocument(doc.id)
+                                documentsList = dbHelper?.getAllDocuments() ?: emptyList()
+                            }
+                        )
+                    }
                 }
             }
 
@@ -188,7 +229,7 @@ fun DocumentFilesScreen(
                     onClick = onNewDocumentClick,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(60.dp).width(400.dp),
+                        .height(60.dp),
                     shape = RoundedCornerShape(40.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Black
@@ -214,16 +255,80 @@ fun DocumentFilesScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeableDocumentCard(
+    title: String,
+    details: String,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            } else {
+                false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color(0xFFE53935))
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = "Delete",
+                        color = Color.White,
+                        fontFamily = Lufga,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
+            }
+        },
+        content = {
+            DocumentCard(
+                title = title,
+                details = details,
+                onClick = onClick
+            )
+        },
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true
+    )
+}
+
 @Composable
 fun DocumentCard(
-    data: DocumentFileData,
+    title: String,
+    details: String,
     onClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
-            .fillMaxWidth().height(70.dp).width(400.dp)
+            .fillMaxWidth()
+            .height(70.dp)
             .clip(RoundedCornerShape(24.dp))
-            .background(data.backgroundColor)
+            .background(Color(0xFFF1E4FF))
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -260,24 +365,29 @@ fun DocumentCard(
 
         // TITLE & DETAILS
         Column(
-            modifier = Modifier.height(50.dp).width(240.dp)
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = data.title,
+                text = title,
                 fontFamily = Lufga,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = DarkText
+                color = DarkText,
+                maxLines = 1
             )
 
             Spacer(modifier = Modifier.height(2.dp))
 
             Text(
-                text = data.details,
+                text = details,
                 fontFamily = Lufga,
-                fontSize = 16.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
-                color = Color(0xFF808080)
+                color = Color(0xFF808080),
+                maxLines = 1
             )
         }
 

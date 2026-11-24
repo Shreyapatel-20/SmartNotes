@@ -11,12 +11,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.PrivacyTip
 import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -32,7 +30,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import com.smartnotes.ai.R
+import com.smartnotes.ai.db.UserDatabaseHelper
 import com.smartnotes.ai.ui.theme.Lufga
 
 private val DarkText = Color(0xFF242529)
@@ -44,6 +45,15 @@ fun ProfileScreen(
     onMenuItemClick: (String) -> Unit = {},
     onBottomNavItemSelected: (Int) -> Unit = {}
 ) {
+    val isPreview = LocalInspectionMode.current
+    val context = LocalContext.current
+    var savedUserName by remember {
+        mutableStateOf(
+            if (isPreview) "" else UserDatabaseHelper(context).getUserName()
+        )
+    }
+    val displayName = if (savedUserName.isNotBlank()) savedUserName else "Mikal jordan"
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -65,8 +75,8 @@ fun ProfileScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 48.dp, bottom = 12.dp)
-                    .height(42.dp),
+                    .padding(top = 58.dp, bottom = 12.dp)
+                    .height(22.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
@@ -136,11 +146,11 @@ fun ProfileScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // USER NAME
                 Text(
-                    text = "Mikal jordan",
+                    text = displayName,
                     fontFamily = Lufga,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -171,7 +181,7 @@ fun ProfileScreen(
                     ) {
                         // 1. Like us, Rate us
                         ProfileMenuItemVector(
-                            icon = Icons.Outlined.StarOutline,
+                            icon = painterResource(R.drawable.star_line),
                             title = "Like us, Rate us",
                             onClick = { onMenuItemClick("Rate") }
                         )
@@ -180,7 +190,7 @@ fun ProfileScreen(
 
                         // 2. Notification
                         ProfileMenuItemPainter(
-                            icon = painterResource(R.drawable.notification),
+                            icon = painterResource(R.drawable.notification_line),
                             title = "Notification",
                             onClick = { onMenuItemClick("Notification") }
                         )
@@ -189,7 +199,7 @@ fun ProfileScreen(
 
                         // 3. Share App
                         ProfileMenuItemVector(
-                            icon = Icons.Outlined.Share,
+                            icon = painterResource(R.drawable.share),
                             title = "Share App",
                             onClick = { onMenuItemClick("Share") }
                         )
@@ -198,7 +208,7 @@ fun ProfileScreen(
 
                         // 4. Privacy Policy
                         ProfileMenuItemVector(
-                            icon = Icons.Outlined.PrivacyTip,
+                            icon = painterResource(R.drawable.privacy_tip_outline),
                             title = "Privacy Policy",
                             onClick = { onMenuItemClick("Privacy") }
                         )
@@ -207,7 +217,7 @@ fun ProfileScreen(
 
                         // 5. Authentication
                         ProfileMenuItemPainter(
-                            icon = painterResource(R.drawable.document),
+                            icon = painterResource(R.drawable.humbleicons_document),
                             title = "Authentication",
                             onClick = { onMenuItemClick("Authentication") }
                         )
@@ -237,7 +247,7 @@ fun ProfileScreen(
 
 @Composable
 fun ProfileMenuItemVector(
-    icon: ImageVector,
+    icon: Painter,
     title: String,
     onClick: () -> Unit = {}
 ) {
@@ -249,10 +259,10 @@ fun ProfileMenuItemVector(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = icon,
+            painter = icon,
             contentDescription = title,
             tint = DarkText,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(24.dp)
         )
 
         Spacer(modifier = Modifier.width(16.dp))
@@ -261,7 +271,7 @@ fun ProfileMenuItemVector(
             text = title,
             fontFamily = Lufga,
             fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.Normal,
             color = DarkText
         )
     }
@@ -284,7 +294,7 @@ fun ProfileMenuItemPainter(
             painter = icon,
             contentDescription = title,
             tint = DarkText,
-            modifier = Modifier.size(22.dp)
+            modifier = Modifier.size(24.dp)
         )
 
         Spacer(modifier = Modifier.width(16.dp))
@@ -293,7 +303,7 @@ fun ProfileMenuItemPainter(
             text = title,
             fontFamily = Lufga,
             fontSize = 16.sp,
-            fontWeight = FontWeight.Medium,
+            fontWeight = FontWeight.Normal,
             color = DarkText
         )
     }

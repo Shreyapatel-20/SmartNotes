@@ -5,14 +5,20 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
+import com.smartnotes.ai.Screens.AddNewNotesScreen
+import com.smartnotes.ai.Screens.AddDocumentScreen
 import com.smartnotes.ai.Screens.AddScheduleMeetingScreen
 import com.smartnotes.ai.Screens.AddYouTubeLinkScreen
 import com.smartnotes.ai.Screens.AudioFilesScreen
 import com.smartnotes.ai.Screens.DocumentFilesScreen
+import com.smartnotes.ai.Screens.DocumentTitleScreen
+import com.smartnotes.ai.Screens.DocumentViewerScreen
 import com.smartnotes.ai.Screens.HomeScreen
 import com.smartnotes.ai.Screens.MeetingLinksScreen
 import com.smartnotes.ai.Screens.MeetingNotesScreen
 import com.smartnotes.ai.Screens.NewNotesScreen
+import com.smartnotes.ai.Screens.NoteDetailsScreen
 import com.smartnotes.ai.Screens.NotesScreen
 import com.smartnotes.ai.Screens.ProfileScreen
 import com.smartnotes.ai.Screens.RecentMeetingLinksScreen
@@ -21,15 +27,27 @@ import com.smartnotes.ai.Screens.RecordingAudioScreen
 import com.smartnotes.ai.Screens.RegisterScreen
 import com.smartnotes.ai.Screens.ScheduleTimelineScreen
 import com.smartnotes.ai.Screens.YouTubeNotesScreen
+import com.smartnotes.ai.db.UserDatabaseHelper
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val context = LocalContext.current
+            val dbHelper = remember { UserDatabaseHelper(context) }
+            val savedName = remember { dbHelper.getUserName() }
+
             var currentScreen by remember {
-                mutableStateOf("register")
+                mutableStateOf(if (savedName.isNotBlank()) "home" else "register")
             }
+            var selectedNoteId by remember { mutableIntStateOf(0) }
+            var selectedNoteTitle by remember { mutableStateOf("") }
+            var selectedNoteDescription by remember { mutableStateOf("") }
+            var selectedFileName by remember { mutableStateOf("Project Proposal.pdf") }
+            var selectedFileDetails by remember { mutableStateOf("2.4 MB • 12 Pages") }
+            var selectedFileUri by remember { mutableStateOf("") }
+            var selectedDocTitle by remember { mutableStateOf("Resume") }
 
             when (currentScreen) {
 
@@ -63,6 +81,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onNavigateToMeetingLinks = {
                             currentScreen = "meeting_links"
+                        },
+                        onNavigateToProfile = {
+                            currentScreen = "profile"
                         }
                     )
                 }
@@ -71,6 +92,40 @@ class MainActivity : ComponentActivity() {
                     NewNotesScreen(
                         onBackClick = {
                             currentScreen = "home"
+                        },
+                        onNewNoteClick = {
+                            currentScreen = "add_new_notes"
+                        },
+                        onNoteClick = { id, title, description ->
+                            selectedNoteId = id
+                            selectedNoteTitle = title
+                            selectedNoteDescription = description
+                            currentScreen = "view_note"
+                        }
+                    )
+                }
+
+                "add_new_notes" -> {
+                    AddNewNotesScreen(
+                        onBackClick = {
+                            currentScreen = "new_notes"
+                        },
+                        onSaveSuccess = {
+                            currentScreen = "new_notes"
+                        }
+                    )
+                }
+
+                "view_note" -> {
+                    NoteDetailsScreen(
+                        noteId = selectedNoteId,
+                        noteTitle = selectedNoteTitle,
+                        noteDescription = selectedNoteDescription,
+                        onBackClick = {
+                            currentScreen = "new_notes"
+                        },
+                        onSaveSuccess = {
+                            currentScreen = "new_notes"
                         }
                     )
                 }
@@ -182,6 +237,53 @@ class MainActivity : ComponentActivity() {
                     DocumentFilesScreen(
                         onBackClick = {
                             currentScreen = "home"
+                        },
+                        onNewDocumentClick = {
+                            currentScreen = "add_document"
+                        },
+                        onDocumentClick = { title, details, fileUri ->
+                            selectedDocTitle = title
+                            selectedFileDetails = details
+                            selectedFileUri = fileUri
+                            currentScreen = "document_viewer"
+                        }
+                    )
+                }
+
+                "add_document" -> {
+                    AddDocumentScreen(
+                        onBackClick = {
+                            currentScreen = "document_files"
+                        },
+                        onContinueClick = { name, details, fileUri ->
+                            selectedFileName = name
+                            selectedFileDetails = details
+                            selectedFileUri = fileUri
+                            currentScreen = "document_title"
+                        }
+                    )
+                }
+
+                "document_title" -> {
+                    DocumentTitleScreen(
+                        fileName = selectedFileName,
+                        fileDetails = selectedFileDetails,
+                        fileUri = selectedFileUri,
+                        onBackClick = {
+                            currentScreen = "add_document"
+                        },
+                        onSaveSuccess = {
+                            currentScreen = "document_files"
+                        }
+                    )
+                }
+
+                "document_viewer" -> {
+                    DocumentViewerScreen(
+                        docTitle = selectedDocTitle,
+                        fileUri = selectedFileUri,
+                        onBackClick = {
+                            currentScreen = "document_files"
                         }
                     )
                 }

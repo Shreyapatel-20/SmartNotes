@@ -36,6 +36,10 @@ import androidx.compose.ui.text.font.FontFamily
 import com.smartnotes.ai.ui.theme.Lufga
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.zIndex
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import com.smartnotes.ai.db.UserDatabaseHelper
+
 private val Purple = Color(0xFFB978E8)
 private val DarkText = Color(0xFF171717)
 
@@ -47,8 +51,17 @@ fun HomeScreen(
     onNavigateToRecordingAudio: () -> Unit = {},
     onNavigateToAudioFiles: () -> Unit = {},
     onNavigateToDocumentFiles: () -> Unit = {},
-    onNavigateToMeetingLinks: () -> Unit = {}
+    onNavigateToMeetingLinks: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {}
 ) {
+    val isPreview = LocalInspectionMode.current
+    val context = LocalContext.current
+    var savedUserName by remember {
+        mutableStateOf(
+            if (isPreview) "" else UserDatabaseHelper(context).getUserName()
+        )
+    }
+    val displayName = if (savedUserName.isNotBlank()) "$savedUserName, " else "Emily, "
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -111,7 +124,7 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(50.dp)
                             .clip(CircleShape)
-                            .clickable { },
+                            .clickable { onNavigateToProfile() },
                         contentScale = ContentScale.Crop
                     )
                 }
@@ -132,7 +145,7 @@ Column(
             color = Color.Gray
         )
         Text(
-            text = "Emily, ",
+            text = displayName,
             fontSize = 30.sp,
             fontFamily = Lufga,
             fontWeight = FontWeight.Normal,
@@ -522,8 +535,9 @@ Column(
             BottomNavigationBar(
                 selectedIndex = 0,
                 onItemSelected = { index ->
-                    if (index == 1) {
-                        onNavigateToNotes()
+                    when (index) {
+                        1 -> onNavigateToNotes()
+                        3 -> onNavigateToProfile()
                     }
                 }
             )

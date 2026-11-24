@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -25,17 +27,29 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartnotes.ai.R
+import com.smartnotes.ai.db.UserDatabaseHelper
 import com.smartnotes.ai.ui.theme.Lufga
 
 private val DarkText = Color(0xFF171717)
+
+private fun isYouTubeUrl(url: String): Boolean {
+    val trimmed = url.trim().lowercase()
+    if (trimmed.isEmpty()) return false
+    return trimmed.contains("youtube.com") || trimmed.contains("youtu.be")
+}
 
 @Composable
 fun AddYouTubeLinkScreen(
     onBackClick: () -> Unit = {},
     onContinueClick: (name: String, link: String) -> Unit = { _, _ -> }
 ) {
+    val isPreview = LocalInspectionMode.current
+    val context = LocalContext.current
+    val dbHelper = remember { if (isPreview) null else UserDatabaseHelper(context) }
+
     var nameText by remember { mutableStateOf("") }
     var linkText by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -111,7 +125,7 @@ fun AddYouTubeLinkScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp).width(400.dp)
+                        .height(50.dp)
                         .clip(CircleShape)
                         .background(Color.White)
                         .padding(horizontal = 20.dp),
@@ -157,7 +171,7 @@ fun AddYouTubeLinkScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp).width(400.dp)
+                        .height(50.dp)
                         .clip(CircleShape)
                         .background(Color.White)
                         .padding(horizontal = 20.dp),
@@ -165,7 +179,12 @@ fun AddYouTubeLinkScreen(
                 ) {
                     BasicTextField(
                         value = linkText,
-                        onValueChange = { linkText = it },
+                        onValueChange = { newValue ->
+                            linkText = newValue
+                            if (errorMessage.isNotEmpty() && isYouTubeUrl(newValue)) {
+                                errorMessage = ""
+                            }
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = TextStyle(
                             fontFamily = Lufga,
@@ -187,6 +206,17 @@ fun AddYouTubeLinkScreen(
                     )
                 }
 
+                if (errorMessage.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = errorMessage,
+                        fontFamily = Lufga,
+                        fontSize = 13.sp,
+                        color = Color.Red,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(90.dp))
             }
         }
@@ -203,10 +233,21 @@ fun AddYouTubeLinkScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp).width(400.dp)
+                    .height(50.dp)
                     .clip(CircleShape)
                     .background(Color.Black)
-                    .clickable { onContinueClick(nameText, linkText) },
+                    .clickable {
+                        val trimmedName = nameText.trim()
+                        val trimmedLink = linkText.trim()
+                        if (!isYouTubeUrl(trimmedLink)) {
+                            errorMessage = "Please enter a valid YouTube link (e.g. https://youtu.be/...)"
+                        } else {
+                            errorMessage = ""
+                            val titleToSave = if (trimmedName.isNotBlank()) trimmedName else "YouTube Video"
+                            dbHelper?.insertYouTubeNote(titleToSave, trimmedLink)
+                            onContinueClick(titleToSave, trimmedLink)
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
