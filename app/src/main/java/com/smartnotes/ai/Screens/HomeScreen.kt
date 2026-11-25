@@ -50,6 +50,7 @@ fun HomeScreen(
     onNavigateToYouTubeNotes: () -> Unit = {},
     onNavigateToRecordingAudio: () -> Unit = {},
     onNavigateToAudioFiles: () -> Unit = {},
+    onNavigateToAudioUpload: () -> Unit = {},
     onNavigateToDocumentFiles: () -> Unit = {},
     onNavigateToMeetingLinks: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {}
@@ -186,7 +187,7 @@ Column(
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(22.dp))
                             .background(Color(0xFFFFECBA))
-                            .clickable { onNavigateToAudioFiles() }
+                            .clickable { onNavigateToRecordingAudio() }
                     ) {
 
                         // Sunburst background graphic centered behind top-left mic circle
@@ -247,7 +248,7 @@ Column(
                             Spacer(modifier = Modifier.height(7.dp))
 
                             Button(
-                                onClick = onNavigateToAudioFiles,
+                                onClick = onNavigateToRecordingAudio,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(40.dp).width(150.dp),
@@ -289,7 +290,7 @@ Column(
                                     .fillMaxSize()
                                     .clip(RoundedCornerShape(30.dp))
                                     .background(Color(0xFFD7D0FE))
-                                    .clickable { onNavigateToAudioFiles() }
+                                    .clickable { onNavigateToAudioUpload() }
                             ) {
                                 Image(
                                     painter = painterResource(R.drawable.uploadaudio),
@@ -482,7 +483,7 @@ Column(
                         .clickable { onNavigateToYouTubeNotes() }
                 ) {
                     NoteItem(
-                        title = "YouTube URL",
+                        title = "URL & Video Notes",
                         subtitle = "Recording & transcribe meeting",
                         icon = painterResource(R.drawable.youtube),
                         background = Color(0xFFD1F1EF),
@@ -493,7 +494,7 @@ Column(
 
                 // NOTE 2
                 NoteItem(
-                    title = "Meeting Link",
+                    title = "Meeting Notes",
                     subtitle = "Recording & transcribe meeting",
                     icon = painterResource(R.drawable.video),
                     background = Color(0xFFF0E1FF),
@@ -502,18 +503,8 @@ Column(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // NOTE 3
                 NoteItem(
-                    title = "Recording Audio",
-                    subtitle = "Recording with Microphone",
-                    icon = painterResource(R.drawable.microphone),
-                    background = Color(0xFFFFE5CA),
-                    onClick = onNavigateToRecordingAudio
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-                NoteItem(
-                    title = "Upload Document",
+                    title ="Document Notes",
                     subtitle = "Upload PDF & other File",
                     icon = painterResource(R.drawable.documents_outline),
                     background = Color(0xFFD1F1EF),

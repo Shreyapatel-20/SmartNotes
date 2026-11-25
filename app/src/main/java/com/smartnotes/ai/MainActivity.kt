@@ -8,13 +8,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import com.smartnotes.ai.Screens.AddNewNotesScreen
 import com.smartnotes.ai.Screens.AddDocumentScreen
+import com.smartnotes.ai.Screens.AddImageFolderScreen
+import com.smartnotes.ai.Screens.AddImageScreen
 import com.smartnotes.ai.Screens.AddScheduleMeetingScreen
 import com.smartnotes.ai.Screens.AddYouTubeLinkScreen
 import com.smartnotes.ai.Screens.AudioFilesScreen
+import com.smartnotes.ai.Screens.AudioUploadScreen
 import com.smartnotes.ai.Screens.DocumentFilesScreen
 import com.smartnotes.ai.Screens.DocumentTitleScreen
 import com.smartnotes.ai.Screens.DocumentViewerScreen
 import com.smartnotes.ai.Screens.HomeScreen
+import com.smartnotes.ai.Screens.ImageFilesScreen
+import com.smartnotes.ai.Screens.ImageViewerScreen
 import com.smartnotes.ai.Screens.MeetingLinksScreen
 import com.smartnotes.ai.Screens.MeetingNotesScreen
 import com.smartnotes.ai.Screens.NewNotesScreen
@@ -24,6 +29,7 @@ import com.smartnotes.ai.Screens.ProfileScreen
 import com.smartnotes.ai.Screens.RecentMeetingLinksScreen
 import com.smartnotes.ai.Screens.RecentMeetingNotesScreen
 import com.smartnotes.ai.Screens.RecordingAudioScreen
+import com.smartnotes.ai.Screens.RecordingFilesScreen
 import com.smartnotes.ai.Screens.RegisterScreen
 import com.smartnotes.ai.Screens.ScheduleTimelineScreen
 import com.smartnotes.ai.Screens.YouTubeNotesScreen
@@ -48,6 +54,7 @@ class MainActivity : ComponentActivity() {
             var selectedFileDetails by remember { mutableStateOf("2.4 MB • 12 Pages") }
             var selectedFileUri by remember { mutableStateOf("") }
             var selectedDocTitle by remember { mutableStateOf("Resume") }
+            var selectedFolderTitle by remember { mutableStateOf("Nature") }
 
             when (currentScreen) {
 
@@ -75,6 +82,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onNavigateToAudioFiles = {
                             currentScreen = "audio_files"
+                        },
+                        onNavigateToAudioUpload = {
+                            currentScreen = "audio_upload"
                         },
                         onNavigateToDocumentFiles = {
                             currentScreen = "document_files"
@@ -228,7 +238,19 @@ class MainActivity : ComponentActivity() {
                             currentScreen = "home"
                         },
                         onNewAudioFileClick = {
-                            currentScreen = "recording_audio"
+                            currentScreen = "audio_upload"
+                        }
+                    )
+                }
+
+                "audio_upload" -> {
+                    AudioUploadScreen(
+                        onBackClick = {
+                            currentScreen = "home"
+                        },
+                        onContinueClick = { title, fileUri ->
+                            dbHelper.insertAudioFile(title = title, fileUri = fileUri)
+                            currentScreen = "audio_files"
                         }
                     )
                 }
@@ -295,6 +317,85 @@ class MainActivity : ComponentActivity() {
                         },
                         onNavigateToYouTubeNotes = {
                             currentScreen = "youtube_notes"
+                        },
+                        onNavigateToAudioFiles = {
+                            currentScreen = "audio_files"
+                        },
+                        onNavigateToDocumentFiles = {
+                            currentScreen = "document_files"
+                        },
+                        onNavigateToMeetingLinks = {
+                            currentScreen = "meeting_links"
+                        },
+                        onNavigateToRecordingFiles = {
+                            currentScreen = "recording_files"
+                        },
+                        onNavigateToImageFiles = {
+                            currentScreen = "image_files"
+                        }
+                    )
+                }
+
+                "image_files" -> {
+                    ImageFilesScreen(
+                        onBackClick = {
+                            currentScreen = "notes"
+                        },
+                        onAddNewImageClick = {
+                            currentScreen = "add_image_folder"
+                        },
+                        onFolderClick = { folderTitle ->
+                            selectedFolderTitle = folderTitle
+                            currentScreen = "image_viewer"
+                        }
+                    )
+                }
+
+                "image_viewer" -> {
+                    ImageViewerScreen(
+                        folderTitle = selectedFolderTitle,
+                        onBackClick = {
+                            currentScreen = "image_files"
+                        },
+                        onAddImageClick = {
+                            currentScreen = "add_image"
+                        }
+                    )
+                }
+
+                "add_image_folder" -> {
+                    AddImageFolderScreen(
+                        onBackClick = {
+                            currentScreen = "image_files"
+                        },
+                        onContinueClick = {
+                            currentScreen = "image_files"
+                        }
+                    )
+                }
+
+                "add_image" -> {
+                    AddImageScreen(
+                        folderTitle = selectedFolderTitle,
+                        onBackClick = {
+                            currentScreen = "image_viewer"
+                        },
+                        onContinueClick = {
+                            currentScreen = "image_viewer"
+                        },
+                        onFolderFieldClick = {
+                            currentScreen = "add_image_folder"
+                        }
+                    )
+                }
+
+                "recording_files" -> {
+                    RecordingFilesScreen(
+                        onBackClick = {
+                            currentScreen = "home"
+                        },
+                        onNewRecordingClick = {
+                            currentScreen = "recording_audio"
                         }
                     )
                 }

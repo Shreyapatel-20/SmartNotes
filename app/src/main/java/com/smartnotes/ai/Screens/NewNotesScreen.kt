@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -154,12 +155,20 @@ fun NewNotesScreen(
                         }
                     }
                 } else {
-                    items(notesList) { note ->
-                        val subText = note.subtitle.ifBlank { "${note.dateText}   Saved note" }
-                        NoteCard(
-                            title = note.title,
-                            subtitle = subText,
-                            onClick = { onNoteClick(note.id, note.title, subText) }
+                    items(
+                        items = notesList,
+                        key = { it.id }
+                    ) { note ->
+                        SwipeableNoteCard(
+                            note = note,
+                            onClick = {
+                                val subText = note.subtitle.ifBlank { "${note.dateText}   Saved note" }
+                                onNoteClick(note.id, note.title, subText)
+                            },
+                            onDeleteConfirmed = {
+                                dbHelper?.deleteNote(note.id)
+                                notesList = dbHelper?.getAllNotes() ?: emptyList()
+                            }
                         )
                     }
                 }
@@ -202,6 +211,101 @@ fun NewNotesScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeableNoteCard(
+    note: NoteModel,
+    onClick: () -> Unit,
+    onDeleteConfirmed: () -> Unit
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                showDeleteDialog = true
+                false // Wait for confirmation dialog
+            } else {
+                false
+            }
+        }
+    )
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteDialog = false
+            },
+            title = {
+                Text(text = "Delete Note", fontFamily = Lufga, fontWeight = FontWeight.Bold)
+            },
+            text = {
+                Text(text = "Are you sure you want to delete '${note.title}'?", fontFamily = Lufga)
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteConfirmed()
+                    }
+                ) {
+                    Text("Delete", color = Color.Red, fontFamily = Lufga, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                    }
+                ) {
+                    Text("Cancel", fontFamily = Lufga)
+                }
+            }
+        )
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(30.dp))
+                    .background(Color(0xFFE53935))
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = "Delete",
+                        color = Color.White,
+                        fontFamily = Lufga,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
+            }
+        },
+        content = {
+            val subText = note.subtitle.ifBlank { "${note.dateText}   Saved note" }
+            NoteCard(
+                title = note.title,
+                subtitle = subText,
+                onClick = onClick
+            )
+        },
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true
+    )
+}
 
 // NOTE CARD
 @Composable

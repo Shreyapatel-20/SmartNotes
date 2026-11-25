@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -67,13 +68,14 @@ fun RecordingAudioScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 48.dp, bottom = 20.dp)
-                    .height(42.dp),
+                    .padding(top = 58.dp, bottom = 20.dp)
+                    .height(25.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
                         .size(36.dp)
+                        .background(Color.Transparent)
                         .clickable { onBackClick() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -98,18 +100,18 @@ fun RecordingAudioScreen(
                 Spacer(modifier = Modifier.width(36.dp))
             }
 
-            Spacer(modifier = Modifier.size(53.dp))
+            Spacer(modifier = Modifier.size(20.dp))
 
             Box(
                 modifier = Modifier
-                    .size(342.dp)
+                    .size(280.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFF5F5F5)),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
                     modifier = Modifier
-                        .size(300.dp)
+                        .size(240.dp)
                         .shadow(
                             elevation = 24.dp,
                             shape = CircleShape,
@@ -129,13 +131,14 @@ fun RecordingAudioScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.weight(0.4f))
-            Spacer(modifier = Modifier.size(34.11.dp))
+            Spacer(modifier = Modifier.weight(0.3f))
+            Spacer(modifier = Modifier.size(20.dp))
+
             // AUDIO WAVEFORM
             Row(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.height(95.78.dp).fillMaxWidth()
+                modifier = Modifier.height(80.dp).fillMaxWidth()
             ) {
                 waveformHeights.forEach { height ->
                     Box(
@@ -148,8 +151,7 @@ fun RecordingAudioScreen(
                                 brush = Brush.verticalGradient(
                                     colorStops = arrayOf(
                                         0.0f to Color(0xffD970DE),
-                                        100.0f to Color(0xff9B86FD),
-
+                                        100.0f to Color(0xff9B86FD)
                                     )
                                 )
                             )
@@ -157,7 +159,7 @@ fun RecordingAudioScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.11.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // SUBTITLE TEXT
             Text(
@@ -167,29 +169,24 @@ fun RecordingAudioScreen(
                 fontWeight = FontWeight.Normal,
                 color = Color(0xFF808080),
                 textAlign = TextAlign.Center,
-                lineHeight = 23.sp
+                lineHeight = 22.sp
             )
 
-            Spacer(modifier = Modifier.size(52.dp))
+            Spacer(modifier = Modifier.size(30.dp))
 
-            // BOTTOM CONTROLS
+            // MIC & CLOSE CONTROLS
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 10.dp).height(60.dp),
-//                verticalAlignment = Alignment.CenterVertically,
-//                horizontalArrangement = Arrangement.Center
+                    .height(60.dp),
+                contentAlignment = Alignment.Center
             ) {
-
-
                 // MIC BUTTON
                 Box(
                     modifier = Modifier
                         .size(60.dp)
                         .align(Alignment.Center)
                         .shadow(12.dp, CircleShape, spotColor = Color(0x339333EA))
-                        .clip(CircleShape)
-
                         .clip(CircleShape)
                         .background(
                             Brush.verticalGradient(
@@ -207,15 +204,13 @@ fun RecordingAudioScreen(
                     )
                 }
 
-                //Spacer(modifier = Modifier.size(99.dp))
-
                 // CLOSE BUTTON
                 Box(
                     modifier = Modifier
                         .size(50.dp)
                         .align(Alignment.CenterEnd)
-                        //.shadow(4.dp, CircleShape, spotColor = Color.Black.copy(alpha = 0.1f))
-                        //.clip(CircleShape)
+                        .clip(CircleShape)
+                        .background(Color(0xFFF3F4F6))
                         .clickable { onCloseClick() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -223,13 +218,59 @@ fun RecordingAudioScreen(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
                         tint = DarkText,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
-            Spacer(modifier = Modifier.size(40.dp))
-
             }
-            Spacer(modifier = Modifier.size(150.dp))
+
+            Spacer(modifier = Modifier.size(20.dp))
+
+            // REPLAY & DONE BUTTONS
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 36.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = { /* Replay action */ },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(60.dp),
+                    shape = RoundedCornerShape(40.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black
+                    )
+                ) {
+                    Text(
+                        text = "Replay",
+                        color = Color.White,
+                        fontFamily = Lufga,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 18.sp
+                    )
+                }
+
+                Button(
+                    onClick = { onCloseClick() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(60.dp),
+                    shape = RoundedCornerShape(40.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Black
+                    )
+                ) {
+                    Text(
+                        text = "Done",
+                        color = Color.White,
+                        fontFamily = Lufga,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 18.sp
+                    )
+                }
+            }
         }
     }
 }

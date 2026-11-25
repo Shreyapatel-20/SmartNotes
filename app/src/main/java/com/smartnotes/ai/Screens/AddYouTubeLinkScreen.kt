@@ -154,6 +154,49 @@ fun AddYouTubeLinkScreen(
                         }
                     )
                 }
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    text = "Video Title",
+                    fontFamily = Lufga,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = DarkText
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .clip(CircleShape)
+                        .background(Color.White)
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    BasicTextField(
+                        value = nameText,
+                        onValueChange = { nameText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = TextStyle(
+                            fontFamily = Lufga,
+                            fontSize = 15.sp,
+                            color = DarkText
+                        ),
+                        singleLine = true,
+                        decorationBox = { innerTextField ->
+                            if (nameText.isEmpty()) {
+                                Text(
+                                    text = "Give Name",
+                                    fontFamily = Lufga,
+                                    fontSize = 14.sp,
+                                    color = Color(0xff808080)
+                                )
+                            }
+                            innerTextField()
+                        }
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(20.dp))
 
@@ -233,7 +276,7 @@ fun AddYouTubeLinkScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
+                    .height(60.dp)
                     .clip(CircleShape)
                     .background(Color.Black)
                     .clickable {

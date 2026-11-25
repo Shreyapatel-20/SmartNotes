@@ -25,11 +25,27 @@ data class DocumentModel(
     val fileUri: String = ""
 )
 
+data class AudioFileModel(
+    val id: Int = 0,
+    val title: String,
+    val duration: String = "12 : 45 s",
+    val timestamp: String = "Today • 9:58 pm",
+    val fileUri: String = ""
+)
+
+data class ImageModel(
+    val id: Int = 0,
+    val folderName: String,
+    val note: String,
+    val imageUri: String,
+    val timestamp: String = "08/01/26   1 images"
+)
+
 class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
         private const val DATABASE_NAME = "SmartNotesUser.db"
-        private const val DATABASE_VERSION = 5
+        private const val DATABASE_VERSION = 8
         private const val TABLE_USER = "user_profile"
         private const val COLUMN_ID = "id"
         private const val COLUMN_NAME = "user_name"
@@ -50,6 +66,20 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         private const val COLUMN_DOC_TITLE = "title"
         private const val COLUMN_DOC_DETAILS = "details"
         private const val COLUMN_DOC_URI = "file_uri"
+
+        private const val TABLE_AUDIO = "audio_files"
+        private const val COLUMN_AUDIO_ID = "audio_id"
+        private const val COLUMN_AUDIO_TITLE = "title"
+        private const val COLUMN_AUDIO_DURATION = "duration"
+        private const val COLUMN_AUDIO_TIMESTAMP = "timestamp"
+        private const val COLUMN_AUDIO_URI = "file_uri"
+
+        private const val TABLE_IMAGES = "images"
+        private const val COLUMN_IMG_ID = "img_id"
+        private const val COLUMN_IMG_FOLDER = "folder_name"
+        private const val COLUMN_IMG_NOTE = "note"
+        private const val COLUMN_IMG_URI = "image_uri"
+        private const val COLUMN_IMG_TIMESTAMP = "timestamp"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -78,10 +108,28 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 + COLUMN_DOC_URI + " TEXT)")
         db.execSQL(createDocsTable)
 
+        val createAudioTable = ("CREATE TABLE " + TABLE_AUDIO + " ("
+                + COLUMN_AUDIO_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + COLUMN_AUDIO_TITLE + " TEXT NOT NULL, "
+                + COLUMN_AUDIO_DURATION + " TEXT, "
+                + COLUMN_AUDIO_TIMESTAMP + " TEXT, "
+                + COLUMN_AUDIO_URI + " TEXT)")
+        db.execSQL(createAudioTable)
+
+        val createImagesTable = ("CREATE TABLE " + TABLE_IMAGES + " ("
+                + COLUMN_IMG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + COLUMN_IMG_FOLDER + " TEXT NOT NULL, "
+                + COLUMN_IMG_NOTE + " TEXT, "
+                + COLUMN_IMG_URI + " TEXT, "
+                + COLUMN_IMG_TIMESTAMP + " TEXT)")
+        db.execSQL(createImagesTable)
+
         // Seed default sample data
         seedDefaultNotes(db)
         seedDefaultYouTubeNotes(db)
         seedDefaultDocuments(db)
+        seedDefaultAudioFiles(db)
+        seedDefaultImages(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -116,6 +164,26 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+        if (oldVersion < 6) {
+            val createAudioTable = ("CREATE TABLE IF NOT EXISTS " + TABLE_AUDIO + " ("
+                    + COLUMN_AUDIO_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_AUDIO_TITLE + " TEXT NOT NULL, "
+                    + COLUMN_AUDIO_DURATION + " TEXT, "
+                    + COLUMN_AUDIO_TIMESTAMP + " TEXT, "
+                    + COLUMN_AUDIO_URI + " TEXT)")
+            db.execSQL(createAudioTable)
+            seedDefaultAudioFiles(db)
+        }
+        if (oldVersion < 8) {
+            val createImagesTable = ("CREATE TABLE IF NOT EXISTS " + TABLE_IMAGES + " ("
+                    + COLUMN_IMG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    + COLUMN_IMG_FOLDER + " TEXT NOT NULL, "
+                    + COLUMN_IMG_NOTE + " TEXT, "
+                    + COLUMN_IMG_URI + " TEXT, "
+                    + COLUMN_IMG_TIMESTAMP + " TEXT)")
+            db.execSQL(createImagesTable)
+            seedDefaultImages(db)
         }
     }
 
@@ -162,6 +230,24 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 put(COLUMN_DOC_URI, doc.third)
             }
             db.insert(TABLE_DOCS, null, values)
+        }
+    }
+
+    private fun seedDefaultAudioFiles(db: SQLiteDatabase) {}
+
+    private fun seedDefaultImages(db: SQLiteDatabase) {
+        val sampleImages = listOf(
+            listOf("Exam IMP Question", "Sample note", "", "08/01/26   5 images"),
+            listOf("Agman Preparation", "Sample note 2", "", "08/01/26   5 images")
+        )
+        for (img in sampleImages) {
+            val values = ContentValues().apply {
+                put(COLUMN_IMG_FOLDER, img[0])
+                put(COLUMN_IMG_NOTE, img[1])
+                put(COLUMN_IMG_URI, img[2])
+                put(COLUMN_IMG_TIMESTAMP, img[3])
+            }
+            db.insert(TABLE_IMAGES, null, values)
         }
     }
 
@@ -265,6 +351,15 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         return list
     }
 
+    fun deleteNote(noteId: Int): Int {
+        return try {
+            val db = writableDatabase ?: return -1
+            db.delete(TABLE_NOTES, "$COLUMN_NOTE_ID = ?", arrayOf(noteId.toString()))
+        } catch (e: Exception) {
+            -1
+        }
+    }
+
     // YOUTUBE NOTES Methods
     fun insertYouTubeNote(title: String, url: String): Long {
         return try {
@@ -339,6 +434,121 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         return try {
             val db = writableDatabase ?: return -1
             db.delete(TABLE_DOCS, "$COLUMN_DOC_ID = ?", arrayOf(docId.toString()))
+        } catch (e: Exception) {
+            -1
+        }
+    }
+
+    // AUDIO FILES Methods
+    fun insertAudioFile(title: String, duration: String = "12 : 45 s", timestamp: String = "Today • 9:58 pm", fileUri: String = ""): Long {
+        return try {
+            val db = writableDatabase ?: return -1L
+            val values = ContentValues().apply {
+                put(COLUMN_AUDIO_TITLE, title.ifBlank { "Voice Recording" })
+                put(COLUMN_AUDIO_DURATION, duration)
+                put(COLUMN_AUDIO_TIMESTAMP, timestamp)
+                put(COLUMN_AUDIO_URI, fileUri)
+            }
+            db.insert(TABLE_AUDIO, null, values)
+        } catch (e: Exception) {
+            -1L
+        }
+    }
+
+    fun getAllAudioFiles(): List<AudioFileModel> {
+        val list = mutableListOf<AudioFileModel>()
+        try {
+            val db = readableDatabase ?: return list
+            val cursor = db.rawQuery("SELECT * FROM $TABLE_AUDIO ORDER BY $COLUMN_AUDIO_ID DESC", null)
+            if (cursor.moveToFirst()) {
+                do {
+                    val id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_AUDIO_ID))
+                    val title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_AUDIO_TITLE))
+                    val duration = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_AUDIO_DURATION)) ?: "12 : 45 s"
+                    val timestamp = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_AUDIO_TIMESTAMP)) ?: "Today"
+                    val fileUri = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_AUDIO_URI)) ?: ""
+                    list.add(AudioFileModel(id, title, duration, timestamp, fileUri))
+                } while (cursor.moveToNext())
+            }
+            cursor.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return list
+    }
+
+    fun deleteAudioFile(audioId: Int): Int {
+        return try {
+            val db = writableDatabase ?: return -1
+            db.delete(TABLE_AUDIO, "$COLUMN_AUDIO_ID = ?", arrayOf(audioId.toString()))
+        } catch (e: Exception) {
+            -1
+        }
+    }
+
+    fun updateAudioFileTitle(audioId: Int, newTitle: String): Int {
+        return try {
+            val db = writableDatabase ?: return -1
+            val values = ContentValues().apply {
+                put(COLUMN_AUDIO_TITLE, newTitle.ifBlank { "Voice Recording" })
+            }
+            db.update(TABLE_AUDIO, values, "$COLUMN_AUDIO_ID = ?", arrayOf(audioId.toString()))
+        } catch (e: Exception) {
+            -1
+        }
+    }
+
+    // IMAGES Methods
+    fun insertImage(folderName: String, note: String, imageUri: String, timestamp: String = "08/01/26   1 images"): Long {
+        return try {
+            val db = writableDatabase ?: return -1L
+            val values = ContentValues().apply {
+                put(COLUMN_IMG_FOLDER, folderName.ifBlank { "Exam IMP Question" })
+                put(COLUMN_IMG_NOTE, note)
+                put(COLUMN_IMG_URI, imageUri)
+                put(COLUMN_IMG_TIMESTAMP, timestamp)
+            }
+            db.insert(TABLE_IMAGES, null, values)
+        } catch (e: Exception) {
+            -1L
+        }
+    }
+
+    fun getAllImages(): List<ImageModel> {
+        val list = mutableListOf<ImageModel>()
+        try {
+            val db = readableDatabase ?: return list
+            val cursor = db.rawQuery("SELECT * FROM $TABLE_IMAGES ORDER BY $COLUMN_IMG_ID DESC", null)
+            if (cursor.moveToFirst()) {
+                do {
+                    val id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_IMG_ID))
+                    val folderName = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_IMG_FOLDER))
+                    val note = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_IMG_NOTE)) ?: ""
+                    val imageUri = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_IMG_URI)) ?: ""
+                    val timestamp = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_IMG_TIMESTAMP)) ?: "08/01/26   1 images"
+                    list.add(ImageModel(id, folderName, note, imageUri, timestamp))
+                } while (cursor.moveToNext())
+            }
+            cursor.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return list
+    }
+
+    fun deleteImage(imgId: Int): Int {
+        return try {
+            val db = writableDatabase ?: return -1
+            db.delete(TABLE_IMAGES, "$COLUMN_IMG_ID = ?", arrayOf(imgId.toString()))
+        } catch (e: Exception) {
+            -1
+        }
+    }
+
+    fun deleteImagesByFolder(folderName: String): Int {
+        return try {
+            val db = writableDatabase ?: return -1
+            db.delete(TABLE_IMAGES, "$COLUMN_IMG_FOLDER = ?", arrayOf(folderName))
         } catch (e: Exception) {
             -1
         }

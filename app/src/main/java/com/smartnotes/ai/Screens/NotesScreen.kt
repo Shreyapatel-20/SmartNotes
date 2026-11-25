@@ -2,7 +2,6 @@ package com.smartnotes.ai.Screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,20 +11,14 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
-import androidx.compose.ui.input.pointer.motionEventSpy
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -35,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartnotes.ai.R
 import com.smartnotes.ai.ui.theme.Lufga
-import android.R.attr.top
 
 private val DarkText = Color(0xFF171717)
 
@@ -47,14 +39,19 @@ data class NoteCardData(
     val icon: Painter,
     val iconTintColor: Color,
     val backgroundColor: Color,
-    val iconbackgroundcolor:Color,
+    val iconbackgroundcolor: Color,
     val arrowColor: Color
 )
 
 @Composable
 fun NotesScreen(
     onNavigateToHome: () -> Unit = {},
-    onNavigateToYouTubeNotes: () -> Unit = {}
+    onNavigateToYouTubeNotes: () -> Unit = {},
+    onNavigateToAudioFiles: () -> Unit = {},
+    onNavigateToDocumentFiles: () -> Unit = {},
+    onNavigateToMeetingLinks: () -> Unit = {},
+    onNavigateToRecordingFiles: () -> Unit = {},
+    onNavigateToImageFiles: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
@@ -116,13 +113,13 @@ fun NotesScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20 .dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // SEARCH BAR
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp).width(400.dp)
+                        .height(50.dp)
                         .clip(CircleShape)
                         .background(Color.White)
                         .padding(horizontal = 18.dp),
@@ -195,8 +192,6 @@ fun NotesScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // NOTES GRID
-                val imagePainter = rememberVectorPainter(Icons.Default.Image)
-
                 val noteCards = listOf(
                     NoteCardData(
                         title = "Audio file",
@@ -253,6 +248,17 @@ fun NotesScreen(
                         iconbackgroundcolor = Color(0xffF0EDFF),
                         arrowColor = Color(0xFF422BC4)
                     ),
+                    NoteCardData(
+                        title = "URL file",
+                        subtitle = "Aug 20 - 9:58 PM",
+                        tag = "File 1 note",
+                        tagColor = Color(0xFF339891),
+                        icon = painterResource(R.drawable.url),
+                        iconTintColor = Color.Black,
+                        backgroundColor = Color(0xFFC9F0EE),
+                        iconbackgroundcolor = Color(0xffE4F9F6),
+                        arrowColor = Color(0xFF339891)
+                    )
 
                 )
 
@@ -269,8 +275,13 @@ fun NotesScreen(
                                 NoteCardItem(
                                     item = item,
                                     onClick = {
-                                        if (item.title == "YouTube Link" || item.title == "YouTube URL") {
-                                            onNavigateToYouTubeNotes()
+                                        when (item.title) {
+                                            "Audio file" -> onNavigateToAudioFiles()
+                                            "Document file" -> onNavigateToDocumentFiles()
+                                            "Meeting Links" -> onNavigateToMeetingLinks()
+                                            "Recording audio" -> onNavigateToRecordingFiles()
+                                            "Image file" -> onNavigateToImageFiles()
+                                            "YouTube Link", "YouTube URL" -> onNavigateToYouTubeNotes()
                                         }
                                     }
                                 )
@@ -313,19 +324,21 @@ fun NoteCardItem(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(211.dp).width(190.dp)
+            .height(211.dp)
             .clip(RoundedCornerShape(30.dp))
             .background(item.backgroundColor)
             .clickable { onClick() }
             .padding(20.dp)
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().height(120.dp).width(156.dp),
+            modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             // Header: Icon circle + Tag
             Row(
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -352,7 +365,9 @@ fun NoteCardItem(
                     color = item.tagColor
                 )
             }
-        Spacer(modifier = Modifier.padding(top =  19.dp))
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             // Middle text
             Column {
                 Text(
@@ -371,10 +386,12 @@ fun NoteCardItem(
                     color = Color(0xff808080)
                 )
             }
-            Spacer(modifier = Modifier.padding(top = 34.dp))
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             // Bottom row: "View now" + Arrow
             Row(
-                modifier = Modifier.fillMaxWidth().height(23.dp).width(156.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
