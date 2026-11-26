@@ -39,7 +39,7 @@ import com.smartnotes.ai.ui.theme.Lufga
 private val DarkText = Color(0xFF171717)
 
 data class YouTubeLinkItemData(
-    val title: String,
+    val videoTitle: String,
     val url: String = "https://youtube.com/watch?v=...",
     val backgroundColor: Color,
     val iconBackgroundColor: Color = Color.White.copy(alpha = 0.85f)
@@ -47,6 +47,7 @@ data class YouTubeLinkItemData(
 
 @Composable
 fun YouTubeNotesScreen(
+    folderTitle: String = "",
     onBackClick: () -> Unit = {},
     onAddNewLinkClick: () -> Unit = {}
 ) {
@@ -59,10 +60,8 @@ fun YouTubeNotesScreen(
         mutableStateOf(
             if (isPreview) {
                 listOf(
-                    YouTubeNoteModel(1, "Flutter tutorial", "https://youtube.com/watch?v=..."),
-                    YouTubeNoteModel(2, "AI Productivity", "https://youtube.com/watch?v=..."),
-                    YouTubeNoteModel(3, "UI UX Tutorial Full Video", "https://youtube.com/watch?v=..."),
-                    YouTubeNoteModel(4, "AI Productivity", "https://youtube.com/watch?v=...")
+                    YouTubeNoteModel(1, "YouTube", "Flutter tutorial", "https://youtube.com/watch?v=..."),
+                    YouTubeNoteModel(2, "YouTube", "AI Productivity", "https://youtube.com/watch?v=...")
                 )
             } else {
                 emptyList()
@@ -77,9 +76,8 @@ fun YouTubeNotesScreen(
     }
 
     val filteredList = youtubeNotesList.filter { item ->
-        searchQuery.isBlank() ||
-        item.title.contains(searchQuery, ignoreCase = true) ||
-        item.url.contains(searchQuery, ignoreCase = true)
+        (folderTitle.isBlank() || item.folderName.equals(folderTitle, ignoreCase = true)) &&
+        (searchQuery.isBlank() || item.videoTitle.contains(searchQuery, ignoreCase = true) || item.url.contains(searchQuery, ignoreCase = true))
     }
 
     Box(
@@ -130,7 +128,7 @@ fun YouTubeNotesScreen(
                     }
 
                     Text(
-                        text = "YouTube Notes",
+                        text = if (folderTitle.isNotBlank()) folderTitle else "YouTube Notes",
                         fontSize = 20.sp,
                         fontFamily = Lufga,
                         fontWeight = FontWeight.Bold,
@@ -194,7 +192,7 @@ fun YouTubeNotesScreen(
 
                 // SECTION HEADER
                 Text(
-                    text = "All YouTube Links",
+                    text = "All Links",
                     fontFamily = Lufga,
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
@@ -220,7 +218,7 @@ fun YouTubeNotesScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (searchQuery.isNotBlank()) "No YouTube links found matching '$searchQuery'" else "No YouTube links added yet.",
+                                text = if (searchQuery.isNotBlank()) "No links found matching '$searchQuery'" else "No links added in this folder yet.",
                                 fontFamily = Lufga,
                                 fontSize = 14.sp,
                                 color = Color.Gray,
@@ -232,7 +230,7 @@ fun YouTubeNotesScreen(
                             val colorPair = cardColors[index % cardColors.size]
                             YouTubeLinkCard(
                                 item = YouTubeLinkItemData(
-                                    title = item.title,
+                                    videoTitle = item.videoTitle,
                                     url = item.url,
                                     backgroundColor = colorPair.first,
                                     iconBackgroundColor = colorPair.second
@@ -258,7 +256,7 @@ fun YouTubeNotesScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp).width(400.dp)
+                    .height(60.dp)
                     .clip(CircleShape)
                     .background(Color.Black)
                     .clickable { onAddNewLinkClick() },
@@ -289,7 +287,7 @@ fun YouTubeLinkCard(item: YouTubeLinkItemData) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(70.dp).width(400.dp)
+            .height(70.dp)
             .clip(RoundedCornerShape(26.dp))
             .background(item.backgroundColor)
             .clickable { }
@@ -319,7 +317,7 @@ fun YouTubeLinkCard(item: YouTubeLinkItemData) {
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = item.title,
+                text = item.videoTitle,
                 fontFamily = Lufga,
                 fontWeight = FontWeight.Medium,
                 fontSize = 18.sp,

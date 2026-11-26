@@ -283,8 +283,8 @@ fun ScheduleTimelineScreen(
                                                 )
                                             )})
                                     .border(
-                                        width = if (isSelected) 1.5.dp else 1.dp,
-                                        color = if (isSelected) Color.Black else Color(0xFFC0C0C0),
+                                        width = if (isSelected) 1.dp else 1.dp,
+                                        color = if (isSelected) Color(0xff808080) else Color(0xFFC0C0C0),
                                         shape = RoundedCornerShape(20.dp)
                                     )
                                     .clickable { selectedDayIndex = index }

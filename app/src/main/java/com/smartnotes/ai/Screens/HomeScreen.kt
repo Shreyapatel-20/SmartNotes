@@ -48,6 +48,7 @@ fun HomeScreen(
     onNavigateToNotes: () -> Unit = {},
     onNavigateToNewNotes: () -> Unit = {},
     onNavigateToYouTubeNotes: () -> Unit = {},
+    onNavigateUrlFiles: () -> Unit = {},
     onNavigateToRecordingAudio: () -> Unit = {},
     onNavigateToAudioFiles: () -> Unit = {},
     onNavigateToAudioUpload: () -> Unit = {},
@@ -480,14 +481,14 @@ Column(
                         .width(400.dp)
                         .clip(RoundedCornerShape(25.dp))
                         .background(Color(0xFFD1F1EF))
-                        .clickable { onNavigateToYouTubeNotes() }
+                        .clickable { onNavigateUrlFiles() }
                 ) {
                     NoteItem(
                         title = "URL & Video Notes",
                         subtitle = "Recording & transcribe meeting",
                         icon = painterResource(R.drawable.youtube),
                         background = Color(0xFFD1F1EF),
-                        onClick = { onNavigateToYouTubeNotes() }
+                        onClick = { onNavigateUrlFiles() }
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))

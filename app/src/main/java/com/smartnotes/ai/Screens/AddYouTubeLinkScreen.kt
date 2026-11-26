@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,24 +33,27 @@ import com.smartnotes.ai.ui.theme.Lufga
 
 private val DarkText = Color(0xFF171717)
 
-private fun isYouTubeUrl(url: String): Boolean {
-    val trimmed = url.trim().lowercase()
-    if (trimmed.isEmpty()) return false
-    return trimmed.contains("youtube.com") || trimmed.contains("youtu.be")
-}
-
 @Composable
 fun AddYouTubeLinkScreen(
+    initialFolderTitle: String = "",
     onBackClick: () -> Unit = {},
-    onContinueClick: (name: String, link: String) -> Unit = { _, _ -> }
+    onContinueClick: (folder: String, title: String, link: String) -> Unit = { _, _, _ -> }
 ) {
     val isPreview = LocalInspectionMode.current
     val context = LocalContext.current
     val dbHelper = remember { if (isPreview) null else UserDatabaseHelper(context) }
 
-    var nameText by remember { mutableStateOf("") }
+    var folderText by remember { mutableStateOf(initialFolderTitle) }
+    var videoTitleText by remember { mutableStateOf("") }
     var linkText by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf("") }
+
+    var existingFolders by remember { mutableStateOf<List<String>>(emptyList()) }
+
+    LaunchedEffect(Unit) {
+        if (!isPreview && dbHelper != null) {
+            existingFolders = dbHelper.getAllYouTubeNotes().map { it.folderName }.distinct()
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -87,6 +91,7 @@ fun AddYouTubeLinkScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
+                            .background(Color.Transparent)
                             .clickable { onBackClick() },
                         contentAlignment = Alignment.Center
                     ) {
@@ -111,7 +116,7 @@ fun AddYouTubeLinkScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // FIELD 1: GIVE NAME
+                // FIELD 1: FOLDER NAME (GIVE NAME)
                 Text(
                     text = "Give Name",
                     fontFamily = Lufga,
@@ -120,7 +125,36 @@ fun AddYouTubeLinkScreen(
                     color = DarkText
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // EXISTING FOLDER PILLS (Quick select existing folder if available)
+                if (existingFolders.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        existingFolders.take(3).forEach { folder ->
+                            val isSelected = folderText.equals(folder, ignoreCase = true)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(if (isSelected) Color(0xFFC4B5FF) else Color.White)
+                                    .clickable { folderText = folder }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = folder,
+                                    fontFamily = Lufga,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = DarkText
+                                )
+                            }
+                        }
+                    }
+                }
 
                 Box(
                     modifier = Modifier
@@ -132,8 +166,8 @@ fun AddYouTubeLinkScreen(
                     contentAlignment = Alignment.CenterStart
                 ) {
                     BasicTextField(
-                        value = nameText,
-                        onValueChange = { nameText = it },
+                        value = folderText,
+                        onValueChange = { folderText = it },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = TextStyle(
                             fontFamily = Lufga,
@@ -142,9 +176,9 @@ fun AddYouTubeLinkScreen(
                         ),
                         singleLine = true,
                         decorationBox = { innerTextField ->
-                            if (nameText.isEmpty()) {
+                            if (folderText.isEmpty()) {
                                 Text(
-                                    text = "Give Name",
+                                    text = "Give Name (Folder Name)",
                                     fontFamily = Lufga,
                                     fontSize = 14.sp,
                                     color = Color(0xff808080)
@@ -154,7 +188,10 @@ fun AddYouTubeLinkScreen(
                         }
                     )
                 }
+
                 Spacer(modifier = Modifier.height(20.dp))
+
+                // FIELD 2: VIDEO TITLE
                 Text(
                     text = "Video Title",
                     fontFamily = Lufga,
@@ -163,7 +200,7 @@ fun AddYouTubeLinkScreen(
                     color = DarkText
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Box(
                     modifier = Modifier
@@ -175,8 +212,8 @@ fun AddYouTubeLinkScreen(
                     contentAlignment = Alignment.CenterStart
                 ) {
                     BasicTextField(
-                        value = nameText,
-                        onValueChange = { nameText = it },
+                        value = videoTitleText,
+                        onValueChange = { videoTitleText = it },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = TextStyle(
                             fontFamily = Lufga,
@@ -185,9 +222,9 @@ fun AddYouTubeLinkScreen(
                         ),
                         singleLine = true,
                         decorationBox = { innerTextField ->
-                            if (nameText.isEmpty()) {
+                            if (videoTitleText.isEmpty()) {
                                 Text(
-                                    text = "Give Name",
+                                    text = "Video Title",
                                     fontFamily = Lufga,
                                     fontSize = 14.sp,
                                     color = Color(0xff808080)
@@ -200,7 +237,7 @@ fun AddYouTubeLinkScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // FIELD 2: ADD YOUTUBE LINK
+                // FIELD 3: ADD YOUTUBE LINK
                 Text(
                     text = "Add YouTube Link",
                     fontFamily = Lufga,
@@ -209,7 +246,7 @@ fun AddYouTubeLinkScreen(
                     color = DarkText
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Box(
                     modifier = Modifier
@@ -222,12 +259,7 @@ fun AddYouTubeLinkScreen(
                 ) {
                     BasicTextField(
                         value = linkText,
-                        onValueChange = { newValue ->
-                            linkText = newValue
-                            if (errorMessage.isNotEmpty() && isYouTubeUrl(newValue)) {
-                                errorMessage = ""
-                            }
-                        },
+                        onValueChange = { linkText = it },
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = TextStyle(
                             fontFamily = Lufga,
@@ -246,17 +278,6 @@ fun AddYouTubeLinkScreen(
                             }
                             innerTextField()
                         }
-                    )
-                }
-
-                if (errorMessage.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = errorMessage,
-                        fontFamily = Lufga,
-                        fontSize = 13.sp,
-                        color = Color.Red,
-                        fontWeight = FontWeight.Medium
                     )
                 }
 
@@ -280,16 +301,20 @@ fun AddYouTubeLinkScreen(
                     .clip(CircleShape)
                     .background(Color.Black)
                     .clickable {
-                        val trimmedName = nameText.trim()
+                        val trimmedFolder = folderText.trim()
+                        val trimmedTitle = videoTitleText.trim()
                         val trimmedLink = linkText.trim()
-                        if (!isYouTubeUrl(trimmedLink)) {
-                            errorMessage = "Please enter a valid YouTube link (e.g. https://youtu.be/...)"
-                        } else {
-                            errorMessage = ""
-                            val titleToSave = if (trimmedName.isNotBlank()) trimmedName else "YouTube Video"
-                            dbHelper?.insertYouTubeNote(titleToSave, trimmedLink)
-                            onContinueClick(titleToSave, trimmedLink)
-                        }
+
+                        val folderToSave = if (trimmedFolder.isNotBlank()) trimmedFolder else "YouTube"
+                        val titleToSave = if (trimmedTitle.isNotBlank()) trimmedTitle else "Video Title"
+                        val linkToSave = if (trimmedLink.isNotBlank()) trimmedLink else "https://youtube.com/..."
+
+                        dbHelper?.insertYouTubeNote(
+                            folderName = folderToSave,
+                            videoTitle = titleToSave,
+                            url = linkToSave
+                        )
+                        onContinueClick(folderToSave, titleToSave, linkToSave)
                     },
                 contentAlignment = Alignment.Center
             ) {

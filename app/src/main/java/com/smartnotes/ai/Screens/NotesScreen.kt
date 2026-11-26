@@ -51,7 +51,8 @@ fun NotesScreen(
     onNavigateToDocumentFiles: () -> Unit = {},
     onNavigateToMeetingLinks: () -> Unit = {},
     onNavigateToRecordingFiles: () -> Unit = {},
-    onNavigateToImageFiles: () -> Unit = {}
+    onNavigateToImageFiles: () -> Unit = {},
+    onNavigateUrlFiles: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
@@ -281,6 +282,7 @@ fun NotesScreen(
                                             "Meeting Links" -> onNavigateToMeetingLinks()
                                             "Recording audio" -> onNavigateToRecordingFiles()
                                             "Image file" -> onNavigateToImageFiles()
+                                            "URL file" -> onNavigateUrlFiles()
                                             "YouTube Link", "YouTube URL" -> onNavigateToYouTubeNotes()
                                         }
                                     }

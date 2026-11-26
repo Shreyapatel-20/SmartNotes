@@ -1,5 +1,7 @@
 package com.smartnotes.ai.Screens
 
+import android.media.MediaPlayer
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
@@ -36,8 +39,16 @@ import com.smartnotes.ai.R
 import com.smartnotes.ai.db.AudioFileModel
 import com.smartnotes.ai.db.UserDatabaseHelper
 import com.smartnotes.ai.ui.theme.Lufga
+import kotlinx.coroutines.delay
+import java.util.Locale
 
 private val DarkText = Color(0xFF242529)
+
+private fun formatRecordingMillis(millis: Int): String {
+    val seconds = (millis / 1000) % 60
+    val minutes = (millis / (1000 * 60)) % 60
+    return String.format(Locale.getDefault(), "%d : %02d s", minutes, seconds)
+}
 
 @Composable
 fun RecordingFilesScreen(
@@ -102,6 +113,7 @@ fun RecordingFilesScreen(
                 Box(
                     modifier = Modifier
                         .size(36.dp)
+                        .background(Color.Transparent)
                         .clickable { onBackClick() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -197,7 +209,7 @@ fun RecordingFilesScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = if (searchQuery.isNotBlank()) "No recording files found matching '$searchQuery'" else "No recording files yet.",
+                                text = if (searchQuery.isNotBlank()) "No recording files found matching '$searchQuery'" else "No recordings saved yet.\nTap 'new Recording file' to record one!",
                                 fontFamily = Lufga,
                                 fontSize = 14.sp,
                                 color = Color.Gray,
@@ -250,14 +262,16 @@ fun RecordingFilesScreen(
                         val accent = if (file.id % 2 == 0) Color(0xffC67FFC) else Color(0xFFFFD86C)
                         val iconBg = if (file.id % 2 == 0) Color(0xFFF9F5FF) else Color(0xFFFFFDF5)
 
-                        RecordingFileCard(
-                            title = file.title,
-                            timestamp = file.timestamp,
-                            duration = file.duration,
-                            cardBackgroundColor = cardBg,
-                            accentColor = accent,
-                            iconBackgroundColor = iconBg,
-                            onEditClick = { showEditDialog = true }
+                        SwipeableRecordingCard(
+                            file = file,
+                            cardBg = cardBg,
+                            accent = accent,
+                            iconBg = iconBg,
+                            onEditClick = { showEditDialog = true },
+                            onDelete = {
+                                dbHelper?.deleteAudioFile(file.id)
+                                recordingFilesList = dbHelper?.getAllAudioFiles() ?: emptyList()
+                            }
                         )
                     }
                 }
@@ -301,18 +315,136 @@ fun RecordingFilesScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun SwipeableRecordingCard(
+    file: AudioFileModel,
+    cardBg: Color,
+    accent: Color,
+    iconBg: Color,
+    onEditClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            } else {
+                false
+            }
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(30.dp))
+                    .background(Color(0xFFE53935))
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = "Delete",
+                        color = Color.White,
+                        fontFamily = Lufga,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
+            }
+        },
+        content = {
+            RecordingFileCard(
+                title = file.title,
+                timestamp = file.timestamp,
+                duration = file.duration,
+                fileUri = file.fileUri,
+                cardBackgroundColor = cardBg,
+                accentColor = accent,
+                iconBackgroundColor = iconBg,
+                onEditClick = onEditClick
+            )
+        },
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun RecordingFileCard(
     title: String,
     timestamp: String,
     duration: String,
+    fileUri: String,
     cardBackgroundColor: Color,
     accentColor: Color,
     iconBackgroundColor: Color,
     onEditClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     var isPlaying by remember { mutableStateOf(false) }
-    var currentProgress by remember { mutableFloatStateOf(0.35f) }
+    var currentProgress by remember { mutableFloatStateOf(0f) }
+    var currentPositionMs by remember { mutableIntStateOf(0) }
+    var totalDurationMs by remember { mutableIntStateOf(1000) }
     val interactionSource = remember { MutableInteractionSource() }
+
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    DisposableEffect(fileUri) {
+        if (fileUri.isNotBlank()) {
+            try {
+                mediaPlayer = MediaPlayer().apply {
+                    setDataSource(context, Uri.parse(fileUri))
+                    prepare()
+                    totalDurationMs = this.duration.takeIf { it > 0 } ?: 1000
+                    setOnCompletionListener {
+                        isPlaying = false
+                        currentProgress = 0f
+                        currentPositionMs = 0
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        onDispose {
+            try {
+                mediaPlayer?.stop()
+                mediaPlayer?.release()
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    LaunchedEffect(isPlaying, mediaPlayer) {
+        if (isPlaying && mediaPlayer != null) {
+            while (isPlaying && mediaPlayer != null) {
+                try {
+                    currentPositionMs = mediaPlayer?.currentPosition ?: 0
+                    totalDurationMs = mediaPlayer?.duration?.takeIf { it > 0 } ?: 1000
+                    currentProgress = currentPositionMs.toFloat() / totalDurationMs.toFloat()
+                } catch (_: Exception) {
+                }
+                delay(200L)
+            }
+        }
+    }
+
+    val currentTimeStr = formatRecordingMillis(currentPositionMs)
+    val totalTimeStr = if (mediaPlayer != null && mediaPlayer!!.duration > 0) formatRecordingMillis(mediaPlayer!!.duration) else duration
 
     Column(
         modifier = Modifier
@@ -385,57 +517,67 @@ fun RecordingFileCard(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-        // PROGRESS SLIDER
-        Slider(
-            value = currentProgress,
-            onValueChange = { currentProgress = it },
-            interactionSource = interactionSource,
-            thumb = {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .clip(CircleShape)
-                        .background(accentColor)
-                )
-            },
-            track = { sliderState ->
-                SliderDefaults.Track(
-                    sliderState = sliderState,
-                    modifier = Modifier
-                        .height(3.dp)
-                        .fillMaxWidth(),
-                    colors = SliderDefaults.colors(
-                        activeTrackColor = accentColor,
-                        inactiveTrackColor = Color(0xFFE2E8F0)
-                    ),
-                    thumbTrackGapSize = 0.dp
-                )
-            },
+        // PROGRESS SLIDER (Vertically Centered)
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(20.dp)
-        )
-        Spacer(modifier = Modifier.size(5.dp))
+                .height(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Slider(
+                value = currentProgress,
+                onValueChange = { newProgress ->
+                    currentProgress = newProgress
+                    try {
+                        mediaPlayer?.seekTo((newProgress * totalDurationMs).toInt())
+                    } catch (_: Exception) {
+                    }
+                },
+                interactionSource = interactionSource,
+                thumb = {
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(accentColor)
+                    )
+                },
+                track = { sliderState ->
+                    SliderDefaults.Track(
+                        sliderState = sliderState,
+                        modifier = Modifier
+                            .height(4.dp)
+                            .fillMaxWidth(),
+                        colors = SliderDefaults.colors(
+                            activeTrackColor = accentColor,
+                            inactiveTrackColor = Color(0xFFE2E8F0)
+                        ),
+                        thumbTrackGapSize = 0.dp
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        Spacer(modifier = Modifier.size(2.dp))
 
         // TIME INDICATORS
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(y = (-4).dp)
-                .padding(horizontal = 5.dp),
+                .padding(horizontal = 4.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "5 : 45 s",
+                text = currentTimeStr,
                 fontFamily = Lufga,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = Color(0xFF808080)
             )
             Text(
-                text = duration,
+                text = totalTimeStr,
                 fontFamily = Lufga,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
@@ -443,7 +585,7 @@ fun RecordingFileCard(
             )
         }
 
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // PLAYBACK CONTROLS
         Row(
@@ -457,7 +599,17 @@ fun RecordingFileCard(
                 tint = DarkText,
                 modifier = Modifier
                     .size(24.dp)
-                    .clickable { }
+                    .clickable {
+                        try {
+                            mediaPlayer?.let { mp ->
+                                val newPos = (mp.currentPosition - 10000).coerceAtLeast(0)
+                                mp.seekTo(newPos)
+                                currentPositionMs = newPos
+                                currentProgress = currentPositionMs.toFloat() / totalDurationMs.toFloat()
+                            }
+                        } catch (_: Exception) {
+                        }
+                    }
             )
 
             Spacer(modifier = Modifier.width(30.dp))
@@ -467,7 +619,19 @@ fun RecordingFileCard(
                     .size(40.dp)
                     .clip(CircleShape)
                     .background(accentColor)
-                    .clickable { isPlaying = !isPlaying },
+                    .clickable {
+                        try {
+                            if (isPlaying) {
+                                mediaPlayer?.pause()
+                                isPlaying = false
+                            } else {
+                                mediaPlayer?.start()
+                                isPlaying = true
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -486,7 +650,17 @@ fun RecordingFileCard(
                 tint = DarkText,
                 modifier = Modifier
                     .size(24.dp)
-                    .clickable { }
+                    .clickable {
+                        try {
+                            mediaPlayer?.let { mp ->
+                                val newPos = (mp.currentPosition + 10000).coerceAtMost(mp.duration)
+                                mp.seekTo(newPos)
+                                currentPositionMs = newPos
+                                currentProgress = currentPositionMs.toFloat() / totalDurationMs.toFloat()
+                            }
+                        } catch (_: Exception) {
+                        }
+                    }
             )
         }
     }

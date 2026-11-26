@@ -43,6 +43,7 @@ fun AddScheduleMeetingScreen(
     var meetingName by remember { mutableStateOf("") }
     var selectedDate by remember { mutableIntStateOf(14) }
     var selectedSlot by remember { mutableStateOf("9:00 AM") }
+    var keyHighlights by remember { mutableStateOf("") }
 
     val morningSlots = listOf("8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM")
     val afternoonSlots = listOf("3:00 PM", "3:30 PM", "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM")
@@ -171,7 +172,7 @@ fun AddScheduleMeetingScreen(
 
                     Row(
                         modifier = Modifier
-                            .width(400.dp)
+                            .fillMaxWidth()
                             .height(50.dp)
                             .clip(RoundedCornerShape(50))
                             .background(Color.White)
@@ -187,6 +188,7 @@ fun AddScheduleMeetingScreen(
                                 fontSize = 16.sp,
                                 color = DarkText
                             ),
+                            singleLine = true,
                             decorationBox = { innerTextField ->
                                 if (meetingName.isEmpty()) {
                                     Text(
@@ -205,11 +207,11 @@ fun AddScheduleMeetingScreen(
                 // DATE PICKER CARD
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth().height(161.dp)
+                        .fillMaxWidth()
+                        .height(161.dp)
                         .clip(RoundedCornerShape(22.dp))
-                        //.background(Color(0xFFF3EBFD))
                         .background(Color.White.copy(alpha = 0.09f))
-                        .border(1.dp,Color.White, RoundedCornerShape(28.dp))
+                        .border(1.dp, Color.White, RoundedCornerShape(28.dp))
                         .blur(276.2.dp)
                         .padding(16.dp)
                 ) {
@@ -259,11 +261,12 @@ fun AddScheduleMeetingScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(20.dp))
                                     .clickable { selectedDate = dateNum }
-                                    .height(72.dp).width(44.dp)
+                                    .height(72.dp)
+                                    .width(44.dp)
                                     .background(
-                                        brush=if (isSelected){
+                                        brush = if (isSelected) {
                                             Brush.verticalGradient(
-                                                colors=listOf(
+                                                colors = listOf(
                                                     Color(0xFFC084FC),
                                                     Color(0xff9B86FD)
                                                 )
@@ -274,9 +277,10 @@ fun AddScheduleMeetingScreen(
                                                     Color.Transparent,
                                                     Color.Transparent
                                                 )
-                                            )})
+                                            )
+                                        }
+                                    )
                                     .padding(horizontal = 8.dp, vertical = 10.dp)
-
                             ) {
                                 Text(
                                     text = day,
@@ -374,6 +378,52 @@ fun AddScheduleMeetingScreen(
                     )
                 }
 
+                // KEY HIGHLIGHTS SECTION
+                Column {
+                    Text(
+                        text = "Key Highlights",
+                        fontFamily = Lufga,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = DarkText,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .clip(RoundedCornerShape(50))
+                            .border(1.dp, Color(0xFFC4B5FF), RoundedCornerShape(50))
+                            .background(Color.White.copy(alpha = 0.5f))
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        BasicTextField(
+                            value = keyHighlights,
+                            onValueChange = { keyHighlights = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            textStyle = TextStyle(
+                                fontFamily = Lufga,
+                                fontSize = 15.sp,
+                                color = DarkText
+                            ),
+                            singleLine = true,
+                            decorationBox = { innerTextField ->
+                                if (keyHighlights.isEmpty()) {
+                                    Text(
+                                        text = "Enter key highlights...",
+                                        fontFamily = Lufga,
+                                        fontSize = 14.sp,
+                                        color = Color(0xFF999999)
+                                    )
+                                }
+                                innerTextField()
+                            }
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
@@ -433,9 +483,9 @@ fun SlotGrid(
                             .height(39.dp)
                             .clip(RoundedCornerShape(30.dp))
                             .background(
-                                brush=if (isSelected){
+                                brush = if (isSelected) {
                                     Brush.verticalGradient(
-                                        colors=listOf(
+                                        colors = listOf(
                                             Color(0xFFC084FC),
                                             Color(0xff9B86FD)
                                         )
@@ -446,8 +496,10 @@ fun SlotGrid(
                                             Color.Transparent,
                                             Color.Transparent
                                         )
-                                    )})
-                            .border(1.dp, color =if(isSelected) Color.Transparent else  Color(0xff808080), RoundedCornerShape(30.dp))
+                                    )
+                                }
+                            )
+                            .border(1.dp, color = if (isSelected) Color.Transparent else Color(0xff808080), RoundedCornerShape(30.dp))
                             .clip(RoundedCornerShape(30.dp))
                             .clickable { onSlotSelected(slot) },
                         contentAlignment = Alignment.Center

@@ -14,7 +14,8 @@ data class NoteModel(
 
 data class YouTubeNoteModel(
     val id: Int = 0,
-    val title: String,
+    val folderName: String = "YouTube",
+    val videoTitle: String = "Video Title",
     val url: String
 )
 
@@ -41,11 +42,17 @@ data class ImageModel(
     val timestamp: String = "08/01/26   1 images"
 )
 
+data class MeetingLinkModel(
+    val id: Int = 0,
+    val title: String,
+    val url: String
+)
+
 class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
         private const val DATABASE_NAME = "SmartNotesUser.db"
-        private const val DATABASE_VERSION = 8
+        private const val DATABASE_VERSION = 17
         private const val TABLE_USER = "user_profile"
         private const val COLUMN_ID = "id"
         private const val COLUMN_NAME = "user_name"
@@ -58,7 +65,8 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
         private const val TABLE_YOUTUBE = "youtube_notes"
         private const val COLUMN_YT_ID = "yt_id"
-        private const val COLUMN_YT_TITLE = "title"
+        private const val COLUMN_YT_FOLDER = "folder_name"
+        private const val COLUMN_YT_VID_TITLE = "video_title"
         private const val COLUMN_YT_URL = "url"
 
         private const val TABLE_DOCS = "documents"
@@ -80,6 +88,11 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         private const val COLUMN_IMG_NOTE = "note"
         private const val COLUMN_IMG_URI = "image_uri"
         private const val COLUMN_IMG_TIMESTAMP = "timestamp"
+
+        private const val TABLE_MEETING_LINKS = "meeting_links"
+        private const val COLUMN_ML_ID = "ml_id"
+        private const val COLUMN_ML_TITLE = "title"
+        private const val COLUMN_ML_URL = "url"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -97,7 +110,8 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
         val createYouTubeTable = ("CREATE TABLE " + TABLE_YOUTUBE + " ("
                 + COLUMN_YT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + COLUMN_YT_TITLE + " TEXT NOT NULL, "
+                + COLUMN_YT_FOLDER + " TEXT NOT NULL, "
+                + COLUMN_YT_VID_TITLE + " TEXT NOT NULL, "
                 + COLUMN_YT_URL + " TEXT NOT NULL)")
         db.execSQL(createYouTubeTable)
 
@@ -124,66 +138,25 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 + COLUMN_IMG_TIMESTAMP + " TEXT)")
         db.execSQL(createImagesTable)
 
+        val createMeetingLinksTable = ("CREATE TABLE " + TABLE_MEETING_LINKS + " ("
+                + COLUMN_ML_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + COLUMN_ML_TITLE + " TEXT NOT NULL, "
+                + COLUMN_ML_URL + " TEXT NOT NULL)")
+        db.execSQL(createMeetingLinksTable)
+
         // Seed default sample data
         seedDefaultNotes(db)
-        seedDefaultYouTubeNotes(db)
         seedDefaultDocuments(db)
-        seedDefaultAudioFiles(db)
         seedDefaultImages(db)
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        if (oldVersion < 2) {
-            val createNotesTable = ("CREATE TABLE IF NOT EXISTS " + TABLE_NOTES + " ("
-                    + COLUMN_NOTE_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    + COLUMN_NOTE_TITLE + " TEXT NOT NULL, "
-                    + COLUMN_NOTE_SUBTITLE + " TEXT, "
-                    + COLUMN_NOTE_DATE + " TEXT)")
-            db.execSQL(createNotesTable)
-            seedDefaultNotes(db)
-        }
-        if (oldVersion < 3) {
-            val createYouTubeTable = ("CREATE TABLE IF NOT EXISTS " + TABLE_YOUTUBE + " ("
-                    + COLUMN_YT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    + COLUMN_YT_TITLE + " TEXT NOT NULL, "
-                    + COLUMN_YT_URL + " TEXT NOT NULL)")
-            db.execSQL(createYouTubeTable)
-            seedDefaultYouTubeNotes(db)
-        }
-        if (oldVersion < 4) {
-            val createDocsTable = ("CREATE TABLE IF NOT EXISTS " + TABLE_DOCS + " ("
-                    + COLUMN_DOC_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    + COLUMN_DOC_TITLE + " TEXT NOT NULL, "
-                    + COLUMN_DOC_DETAILS + " TEXT)")
-            db.execSQL(createDocsTable)
-            seedDefaultDocuments(db)
-        }
-        if (oldVersion < 5) {
+        if (oldVersion < 17) {
             try {
-                db.execSQL("ALTER TABLE $TABLE_DOCS ADD COLUMN $COLUMN_DOC_URI TEXT")
+                db.execSQL("DELETE FROM $TABLE_YOUTUBE WHERE $COLUMN_YT_FOLDER IN ('Youtube', 'YouTube', 'Instagram', 'Facebook')")
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-        }
-        if (oldVersion < 6) {
-            val createAudioTable = ("CREATE TABLE IF NOT EXISTS " + TABLE_AUDIO + " ("
-                    + COLUMN_AUDIO_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    + COLUMN_AUDIO_TITLE + " TEXT NOT NULL, "
-                    + COLUMN_AUDIO_DURATION + " TEXT, "
-                    + COLUMN_AUDIO_TIMESTAMP + " TEXT, "
-                    + COLUMN_AUDIO_URI + " TEXT)")
-            db.execSQL(createAudioTable)
-            seedDefaultAudioFiles(db)
-        }
-        if (oldVersion < 8) {
-            val createImagesTable = ("CREATE TABLE IF NOT EXISTS " + TABLE_IMAGES + " ("
-                    + COLUMN_IMG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    + COLUMN_IMG_FOLDER + " TEXT NOT NULL, "
-                    + COLUMN_IMG_NOTE + " TEXT, "
-                    + COLUMN_IMG_URI + " TEXT, "
-                    + COLUMN_IMG_TIMESTAMP + " TEXT)")
-            db.execSQL(createImagesTable)
-            seedDefaultImages(db)
         }
     }
 
@@ -204,19 +177,7 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
     }
 
     private fun seedDefaultYouTubeNotes(db: SQLiteDatabase) {
-        val sampleYt = listOf(
-            "Flutter tutorial" to "https://youtube.com/watch?v=...",
-            "AI Productivity" to "https://youtube.com/watch?v=...",
-            "UI UX Tutorial Full Video" to "https://youtube.com/watch?v=...",
-            "AI Productivity" to "https://youtube.com/watch?v=..."
-        )
-        for (item in sampleYt) {
-            val values = ContentValues().apply {
-                put(COLUMN_YT_TITLE, item.first)
-                put(COLUMN_YT_URL, item.second)
-            }
-            db.insert(TABLE_YOUTUBE, null, values)
-        }
+        // No dummy data seeded
     }
 
     private fun seedDefaultDocuments(db: SQLiteDatabase) {
@@ -232,8 +193,6 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
             db.insert(TABLE_DOCS, null, values)
         }
     }
-
-    private fun seedDefaultAudioFiles(db: SQLiteDatabase) {}
 
     private fun seedDefaultImages(db: SQLiteDatabase) {
         val sampleImages = listOf(
@@ -360,38 +319,87 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         }
     }
 
-    // YOUTUBE NOTES Methods
-    fun insertYouTubeNote(title: String, url: String): Long {
-        return try {
+    // YOUTUBE / URL NOTES Methods (Folder Name, Video Title, URL)
+    fun insertYouTubeNote(folderName: String, videoTitle: String, url: String): Long {
+        var result = -1L
+        try {
             val db = writableDatabase ?: return -1L
             val values = ContentValues().apply {
-                put(COLUMN_YT_TITLE, title.ifBlank { "YouTube Video" })
+                put(COLUMN_YT_FOLDER, folderName.ifBlank { "YouTube" })
+                put(COLUMN_YT_VID_TITLE, videoTitle.ifBlank { "Video Title" })
                 put(COLUMN_YT_URL, url.trim())
             }
-            db.insert(TABLE_YOUTUBE, null, values)
+            result = db.insert(TABLE_YOUTUBE, null, values)
+            if (result == -1L) {
+                db.execSQL("DROP TABLE IF EXISTS $TABLE_YOUTUBE")
+                db.execSQL("CREATE TABLE $TABLE_YOUTUBE ($COLUMN_YT_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_YT_FOLDER TEXT NOT NULL, $COLUMN_YT_VID_TITLE TEXT NOT NULL, $COLUMN_YT_URL TEXT NOT NULL)")
+                result = db.insert(TABLE_YOUTUBE, null, values)
+            }
         } catch (e: Exception) {
-            -1L
+            e.printStackTrace()
         }
+        return result
     }
 
     fun getAllYouTubeNotes(): List<YouTubeNoteModel> {
         val list = mutableListOf<YouTubeNoteModel>()
         try {
             val db = readableDatabase ?: return list
-            val cursor = db.rawQuery("SELECT * FROM $TABLE_YOUTUBE ORDER BY $COLUMN_YT_ID DESC", null)
-            if (cursor.moveToFirst()) {
-                do {
-                    val id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_YT_ID))
-                    val title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_YT_TITLE))
-                    val url = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_YT_URL))
-                    list.add(YouTubeNoteModel(id, title, url))
-                } while (cursor.moveToNext())
+            var cursor: android.database.Cursor? = null
+            try {
+                cursor = db.rawQuery("SELECT * FROM $TABLE_YOUTUBE ORDER BY $COLUMN_YT_ID DESC", null)
+            } catch (e: Exception) {
+                val wDb = writableDatabase
+                if (wDb != null) {
+                    wDb.execSQL("DROP TABLE IF EXISTS $TABLE_YOUTUBE")
+                    wDb.execSQL("CREATE TABLE $TABLE_YOUTUBE ($COLUMN_YT_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_YT_FOLDER TEXT NOT NULL, $COLUMN_YT_VID_TITLE TEXT NOT NULL, $COLUMN_YT_URL TEXT NOT NULL)")
+                    cursor = db.rawQuery("SELECT * FROM $TABLE_YOUTUBE ORDER BY $COLUMN_YT_ID DESC", null)
+                }
             }
-            cursor.close()
+
+            if (cursor != null && cursor.moveToFirst()) {
+                val idIdx = cursor.getColumnIndex(COLUMN_YT_ID)
+                val folderIdx = cursor.getColumnIndex(COLUMN_YT_FOLDER)
+                val titleIdx = cursor.getColumnIndex(COLUMN_YT_VID_TITLE)
+                val legacyTitleIdx = cursor.getColumnIndex("title")
+                val urlIdx = cursor.getColumnIndex(COLUMN_YT_URL)
+
+                do {
+                    val id = if (idIdx != -1) cursor.getInt(idIdx) else 0
+                    val folderName = if (folderIdx != -1) cursor.getString(folderIdx) ?: "YouTube" else "YouTube"
+                    val videoTitle = if (titleIdx != -1) {
+                        cursor.getString(titleIdx) ?: "Video Title"
+                    } else if (legacyTitleIdx != -1) {
+                        cursor.getString(legacyTitleIdx) ?: "Video Title"
+                    } else "Video Title"
+                    val url = if (urlIdx != -1) cursor.getString(urlIdx) ?: "" else ""
+
+                    list.add(YouTubeNoteModel(id, folderName, videoTitle, url))
+                } while (cursor.moveToNext())
+                cursor.close()
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
         return list
+    }
+
+    fun deleteYouTubeNote(ytId: Int): Int {
+        return try {
+            val db = writableDatabase ?: return -1
+            db.delete(TABLE_YOUTUBE, "$COLUMN_YT_ID = ?", arrayOf(ytId.toString()))
+        } catch (e: Exception) {
+            -1
+        }
+    }
+
+    fun deleteYouTubeNotesByFolder(folderName: String): Int {
+        return try {
+            val db = writableDatabase ?: return -1
+            db.delete(TABLE_YOUTUBE, "$COLUMN_YT_FOLDER = ?", arrayOf(folderName))
+        } catch (e: Exception) {
+            -1
+        }
     }
 
     // DOCUMENTS Methods

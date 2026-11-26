@@ -10,6 +10,7 @@ import com.smartnotes.ai.Screens.AddNewNotesScreen
 import com.smartnotes.ai.Screens.AddDocumentScreen
 import com.smartnotes.ai.Screens.AddImageFolderScreen
 import com.smartnotes.ai.Screens.AddImageScreen
+import com.smartnotes.ai.Screens.AddMeetingLinkScreen
 import com.smartnotes.ai.Screens.AddScheduleMeetingScreen
 import com.smartnotes.ai.Screens.AddYouTubeLinkScreen
 import com.smartnotes.ai.Screens.AudioFilesScreen
@@ -33,6 +34,7 @@ import com.smartnotes.ai.Screens.RecordingFilesScreen
 import com.smartnotes.ai.Screens.RegisterScreen
 import com.smartnotes.ai.Screens.ScheduleTimelineScreen
 import com.smartnotes.ai.Screens.YouTubeNotesScreen
+import com.smartnotes.ai.Screens.UrlFilesScreen
 import com.smartnotes.ai.db.UserDatabaseHelper
 
 class MainActivity : ComponentActivity() {
@@ -76,6 +78,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onNavigateToYouTubeNotes = {
                             currentScreen = "youtube_notes"
+                        },
+                        onNavigateUrlFiles = {
+                            currentScreen = "url_files"
                         },
                         onNavigateToRecordingAudio = {
                             currentScreen = "recording_audio"
@@ -332,6 +337,25 @@ class MainActivity : ComponentActivity() {
                         },
                         onNavigateToImageFiles = {
                             currentScreen = "image_files"
+                        },
+                        onNavigateUrlFiles = {
+                            currentScreen = "url_files"
+                        }
+                    )
+                }
+
+                "url_files" -> {
+                    UrlFilesScreen(
+                        onBackClick = {
+                            currentScreen = "notes"
+                        },
+                        onNewLinksClick = {
+                            selectedFolderTitle = ""
+                            currentScreen = "add_youtube_link"
+                        },
+                        onFolderClick = { folderTitle ->
+                            selectedFolderTitle = folderTitle
+                            currentScreen = "youtube_notes"
                         }
                     )
                 }
@@ -402,22 +426,37 @@ class MainActivity : ComponentActivity() {
 
                 "youtube_notes" -> {
                     YouTubeNotesScreen(
+                        folderTitle = selectedFolderTitle,
                         onBackClick = {
-                            currentScreen = "home"
+                            currentScreen = "url_files"
                         },
                         onAddNewLinkClick = {
-                            currentScreen = "add_youtube_link"
+                            currentScreen = "add_meeting_link"
+                        }
+                    )
+                }
+
+                "add_meeting_link" -> {
+                    AddMeetingLinkScreen(
+                        folderTitle = selectedFolderTitle,
+                        onBackClick = {
+                            currentScreen = "youtube_notes"
+                        },
+                        onContinueClick = { _, _ ->
+                            currentScreen = "youtube_notes"
                         }
                     )
                 }
 
                 "add_youtube_link" -> {
                     AddYouTubeLinkScreen(
+                        initialFolderTitle = selectedFolderTitle,
                         onBackClick = {
-                            currentScreen = "youtube_notes"
+                            currentScreen = if (selectedFolderTitle.isNotBlank()) "youtube_notes" else "url_files"
                         },
-                        onContinueClick = { _, _ ->
-                            currentScreen = "youtube_notes"
+                        onContinueClick = { folder, _, _ ->
+                            selectedFolderTitle = folder
+                            currentScreen = "url_files"
                         }
                     )
                 }
