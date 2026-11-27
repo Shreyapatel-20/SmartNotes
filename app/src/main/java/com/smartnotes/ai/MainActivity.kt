@@ -6,35 +6,34 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
-import com.smartnotes.ai.Screens.AddNewNotesScreen
-import com.smartnotes.ai.Screens.AddDocumentScreen
-import com.smartnotes.ai.Screens.AddImageFolderScreen
-import com.smartnotes.ai.Screens.AddImageScreen
-import com.smartnotes.ai.Screens.AddMeetingLinkScreen
-import com.smartnotes.ai.Screens.AddScheduleMeetingScreen
-import com.smartnotes.ai.Screens.AddYouTubeLinkScreen
-import com.smartnotes.ai.Screens.AudioFilesScreen
-import com.smartnotes.ai.Screens.AudioUploadScreen
-import com.smartnotes.ai.Screens.DocumentFilesScreen
-import com.smartnotes.ai.Screens.DocumentTitleScreen
-import com.smartnotes.ai.Screens.DocumentViewerScreen
-import com.smartnotes.ai.Screens.HomeScreen
-import com.smartnotes.ai.Screens.ImageFilesScreen
-import com.smartnotes.ai.Screens.ImageViewerScreen
-import com.smartnotes.ai.Screens.MeetingLinksScreen
-import com.smartnotes.ai.Screens.MeetingNotesScreen
-import com.smartnotes.ai.Screens.NewNotesScreen
-import com.smartnotes.ai.Screens.NoteDetailsScreen
-import com.smartnotes.ai.Screens.NotesScreen
-import com.smartnotes.ai.Screens.ProfileScreen
-import com.smartnotes.ai.Screens.RecentMeetingLinksScreen
-import com.smartnotes.ai.Screens.RecentMeetingNotesScreen
-import com.smartnotes.ai.Screens.RecordingAudioScreen
-import com.smartnotes.ai.Screens.RecordingFilesScreen
-import com.smartnotes.ai.Screens.RegisterScreen
-import com.smartnotes.ai.Screens.ScheduleTimelineScreen
-import com.smartnotes.ai.Screens.YouTubeNotesScreen
-import com.smartnotes.ai.Screens.UrlFilesScreen
+import com.smartnotes.ai.Screens.notes.AddNewNotesScreen
+import com.smartnotes.ai.Screens.notes.NotesScreen
+import com.smartnotes.ai.Screens.documents.AddDocumentScreen
+import com.smartnotes.ai.Screens.images.AddImageFolderScreen
+import com.smartnotes.ai.Screens.images.AddImageScreen
+import com.smartnotes.ai.Screens.meetings.AddScheduleMeetingScreen
+import com.smartnotes.ai.Screens.youtube.AddYouTubeLinkScreen
+import com.smartnotes.ai.Screens.audio.AudioFilesScreen
+import com.smartnotes.ai.Screens.audio.AudioUploadScreen
+import com.smartnotes.ai.Screens.documents.DocumentFilesScreen
+import com.smartnotes.ai.Screens.documents.DocumentTitleScreen
+import com.smartnotes.ai.Screens.documents.DocumentViewerScreen
+import com.smartnotes.ai.Screens.home.HomeScreen
+import com.smartnotes.ai.Screens.images.ImageFilesScreen
+import com.smartnotes.ai.Screens.images.ImageViewerScreen
+import com.smartnotes.ai.Screens.meetings.MeetingLinksScreen
+import com.smartnotes.ai.Screens.meetings.MeetingNotesScreen
+import com.smartnotes.ai.Screens.notes.NewNotesScreen
+import com.smartnotes.ai.Screens.notes.NoteDetailsScreen
+import com.smartnotes.ai.Screens.profile.ProfileScreen
+import com.smartnotes.ai.Screens.meetings.RecentMeetingLinksScreen
+import com.smartnotes.ai.Screens.meetings.RecentMeetingNotesScreen
+import com.smartnotes.ai.Screens.audio.RecordingAudioScreen
+import com.smartnotes.ai.Screens.audio.RecordingFilesScreen
+import com.smartnotes.ai.Screens.auth.RegisterScreen
+import com.smartnotes.ai.Screens.meetings.ScheduleTimelineScreen
+import com.smartnotes.ai.Screens.youtube.YouTubeNotesScreen
+import com.smartnotes.ai.Screens.youtube.UrlFilesScreen
 import com.smartnotes.ai.db.UserDatabaseHelper
 
 class MainActivity : ComponentActivity() {
@@ -52,6 +51,7 @@ class MainActivity : ComponentActivity() {
             var selectedNoteId by remember { mutableIntStateOf(0) }
             var selectedNoteTitle by remember { mutableStateOf("") }
             var selectedNoteDescription by remember { mutableStateOf("") }
+            var selectedNoteDateText by remember { mutableStateOf("08/01/26") }
             var selectedFileName by remember { mutableStateOf("Project Proposal.pdf") }
             var selectedFileDetails by remember { mutableStateOf("2.4 MB • 12 Pages") }
             var selectedFileUri by remember { mutableStateOf("") }
@@ -71,16 +71,13 @@ class MainActivity : ComponentActivity() {
                 "home" -> {
                     HomeScreen(
                         onNavigateToNotes = {
-                            currentScreen = "notes"
+                            currentScreen = "notes_options"
                         },
                         onNavigateToNewNotes = {
-                            currentScreen = "new_notes"
+                            currentScreen = "notes"
                         },
                         onNavigateToYouTubeNotes = {
                             currentScreen = "youtube_notes"
-                        },
-                        onNavigateUrlFiles = {
-                            currentScreen = "url_files"
                         },
                         onNavigateToRecordingAudio = {
                             currentScreen = "recording_audio"
@@ -103,18 +100,53 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                "new_notes" -> {
+                // The second bottom-bar item opens the note-type chooser first.
+                "notes_options" -> {
+                    NotesScreen(
+                        onNavigateToHome = {
+                            currentScreen = "home"
+                        },
+                        onNavigateToTextNotes = {
+                            currentScreen = "notes"
+                        },
+                        onNavigateToAudioFiles = {
+                            currentScreen = "audio_files"
+                        },
+                        onNavigateToDocumentFiles = {
+                            currentScreen = "document_files"
+                        },
+                        onNavigateToMeetingLinks = {
+                            currentScreen = "meeting_links"
+                        },
+                        onNavigateToRecordingFiles = {
+                            currentScreen = "recording_files"
+                        },
+                        onNavigateToImageFiles = {
+                            currentScreen = "image_files"
+                        },
+                        onNavigateUrlFiles = {
+                            currentScreen = "url_files"
+                        },
+                        onNavigateToYouTubeNotes = {
+                            currentScreen = "youtube_notes"
+                        }
+                    )
+                }
+
+                // Saved text notes stay in their own SQLite-backed list.
+                "notes" -> {
                     NewNotesScreen(
                         onBackClick = {
-                            currentScreen = "home"
+                            currentScreen = "notes_options"
                         },
                         onNewNoteClick = {
                             currentScreen = "add_new_notes"
                         },
-                        onNoteClick = { id, title, description ->
+                        onNoteClick = { id, title, description, dateText ->
                             selectedNoteId = id
                             selectedNoteTitle = title
                             selectedNoteDescription = description
+                            selectedNoteDateText = dateText
                             currentScreen = "view_note"
                         }
                     )
@@ -123,10 +155,10 @@ class MainActivity : ComponentActivity() {
                 "add_new_notes" -> {
                     AddNewNotesScreen(
                         onBackClick = {
-                            currentScreen = "new_notes"
+                            currentScreen = "notes"
                         },
                         onSaveSuccess = {
-                            currentScreen = "new_notes"
+                            currentScreen = "notes"
                         }
                     )
                 }
@@ -136,11 +168,12 @@ class MainActivity : ComponentActivity() {
                         noteId = selectedNoteId,
                         noteTitle = selectedNoteTitle,
                         noteDescription = selectedNoteDescription,
+                        noteDateText = selectedNoteDateText,
                         onBackClick = {
-                            currentScreen = "new_notes"
+                            currentScreen = "notes"
                         },
                         onSaveSuccess = {
-                            currentScreen = "new_notes"
+                            currentScreen = "notes"
                         }
                     )
                 }
@@ -148,7 +181,7 @@ class MainActivity : ComponentActivity() {
                 "meeting_links" -> {
                     MeetingLinksScreen(
                         onBackClick = {
-                            currentScreen = "home"
+                            currentScreen = "notes_options"
                         },
                         onRecentTabClick = {
                             currentScreen = "recent_meeting_links"
@@ -240,7 +273,7 @@ class MainActivity : ComponentActivity() {
                 "audio_files" -> {
                     AudioFilesScreen(
                         onBackClick = {
-                            currentScreen = "home"
+                            currentScreen = "notes_options"
                         },
                         onNewAudioFileClick = {
                             currentScreen = "audio_upload"
@@ -263,7 +296,7 @@ class MainActivity : ComponentActivity() {
                 "document_files" -> {
                     DocumentFilesScreen(
                         onBackClick = {
-                            currentScreen = "home"
+                            currentScreen = "notes_options"
                         },
                         onNewDocumentClick = {
                             currentScreen = "add_document"
@@ -315,55 +348,10 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                "notes" -> {
-                    NotesScreen(
-                        onNavigateToHome = {
-                            currentScreen = "home"
-                        },
-                        onNavigateToYouTubeNotes = {
-                            currentScreen = "youtube_notes"
-                        },
-                        onNavigateToAudioFiles = {
-                            currentScreen = "audio_files"
-                        },
-                        onNavigateToDocumentFiles = {
-                            currentScreen = "document_files"
-                        },
-                        onNavigateToMeetingLinks = {
-                            currentScreen = "meeting_links"
-                        },
-                        onNavigateToRecordingFiles = {
-                            currentScreen = "recording_files"
-                        },
-                        onNavigateToImageFiles = {
-                            currentScreen = "image_files"
-                        },
-                        onNavigateUrlFiles = {
-                            currentScreen = "url_files"
-                        }
-                    )
-                }
-
-                "url_files" -> {
-                    UrlFilesScreen(
-                        onBackClick = {
-                            currentScreen = "notes"
-                        },
-                        onNewLinksClick = {
-                            selectedFolderTitle = ""
-                            currentScreen = "add_youtube_link"
-                        },
-                        onFolderClick = { folderTitle ->
-                            selectedFolderTitle = folderTitle
-                            currentScreen = "youtube_notes"
-                        }
-                    )
-                }
-
                 "image_files" -> {
                     ImageFilesScreen(
                         onBackClick = {
-                            currentScreen = "notes"
+                            currentScreen = "notes_options"
                         },
                         onAddNewImageClick = {
                             currentScreen = "add_image_folder"
@@ -416,7 +404,7 @@ class MainActivity : ComponentActivity() {
                 "recording_files" -> {
                     RecordingFilesScreen(
                         onBackClick = {
-                            currentScreen = "home"
+                            currentScreen = "notes_options"
                         },
                         onNewRecordingClick = {
                             currentScreen = "recording_audio"
@@ -426,23 +414,24 @@ class MainActivity : ComponentActivity() {
 
                 "youtube_notes" -> {
                     YouTubeNotesScreen(
-                        folderTitle = selectedFolderTitle,
                         onBackClick = {
-                            currentScreen = "url_files"
+                            currentScreen = "home"
                         },
                         onAddNewLinkClick = {
-                            currentScreen = "add_meeting_link"
+                            currentScreen = "add_youtube_link"
                         }
                     )
                 }
 
-                "add_meeting_link" -> {
-                    AddMeetingLinkScreen(
-                        folderTitle = selectedFolderTitle,
+                "url_files" -> {
+                    UrlFilesScreen(
                         onBackClick = {
-                            currentScreen = "youtube_notes"
+                            currentScreen = "notes_options"
                         },
-                        onContinueClick = { _, _ ->
+                        onNewLinksClick = {
+                            currentScreen = "add_youtube_link"
+                        },
+                        onFolderClick = {
                             currentScreen = "youtube_notes"
                         }
                     )
@@ -450,13 +439,11 @@ class MainActivity : ComponentActivity() {
 
                 "add_youtube_link" -> {
                     AddYouTubeLinkScreen(
-                        initialFolderTitle = selectedFolderTitle,
                         onBackClick = {
-                            currentScreen = if (selectedFolderTitle.isNotBlank()) "youtube_notes" else "url_files"
+                            currentScreen = "youtube_notes"
                         },
-                        onContinueClick = { folder, _, _ ->
-                            selectedFolderTitle = folder
-                            currentScreen = "url_files"
+                        onContinueClick = { _, _, _ ->
+                            currentScreen = "youtube_notes"
                         }
                     )
                 }
@@ -469,7 +456,7 @@ class MainActivity : ComponentActivity() {
                         onBottomNavItemSelected = { index ->
                             when (index) {
                                 0 -> currentScreen = "home"
-                                1 -> currentScreen = "notes"
+                                1 -> currentScreen = "notes_options"
                                 3 -> currentScreen = "profile"
                             }
                         }

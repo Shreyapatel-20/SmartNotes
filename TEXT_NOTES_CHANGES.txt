@@ -1,0 +1,72 @@
+TEXT NOTES AND SCREEN NAVIGATION CHANGES
+========================================
+
+Goal
+----
+Open the note-type chooser from the second bottom-navigation icon, then let the
+user open the SQLite-backed saved text and audio lists.
+
+Files changed for the latest navigation update
+-----------------------------------------------
+
+app/src/main/java/com/smartnotes/ai/MainActivity.kt
+- Routes the second bottom-navigation icon to the NotesScreen type chooser.
+- Routes Text Notes to the saved NewNotesScreen list and Audio Notes to AudioFilesScreen.
+- Routes the Profile screen's second bottom-navigation icon to the same chooser.
+- Returns to the chooser when backing out of text, audio, document, meeting, or image lists.
+
+app/src/main/java/com/smartnotes/ai/Screens/notes/NotesScreen.kt
+- Adds a Text Notes card and labels the saved audio list Audio Notes.
+- Connects Text Notes and Audio Notes cards to their saved lists; View all opens saved text notes.
+
+Shared dashed-border build fix
+------------------------------
+
+app/src/main/java/com/smartnotes/ai/Screens/common/DashedBorder.kt
+- Holds the shared dashed-border modifier used by upload dropzones.
+
+app/src/main/java/com/smartnotes/ai/Screens/documents/AddDocumentScreen.kt
+app/src/main/java/com/smartnotes/ai/Screens/audio/AudioUploadScreen.kt
+app/src/main/java/com/smartnotes/ai/Screens/images/AddImageFolderScreen.kt
+app/src/main/java/com/smartnotes/ai/Screens/images/AddImageScreen.kt
+- Import the shared modifier. It used to be defined inside the documents package,
+  so screens in the audio and images packages could not resolve it after files
+  were grouped by feature.
+
+Earlier text-note changes
+-------------------------
+
+app/src/main/java/com/smartnotes/ai/Screens/notes/AddNewNotesScreen.kt
+- Saves the full note body instead of truncating it to 30 characters.
+- Requires a title or body and leaves the editor only after SQLite confirms the insert.
+- Shows an error when the save cannot be completed.
+
+app/src/main/java/com/smartnotes/ai/Screens/notes/NewNotesScreen.kt
+- Loads saved text notes from SQLite and displays the date beside each body preview.
+- Passes the selected note's body and date separately to the editor.
+
+app/src/main/java/com/smartnotes/ai/Screens/notes/NoteDetailsScreen.kt
+- Preserves the selected note's date when updating it.
+- Keeps the editor open and shows an error if the database update fails.
+
+app/src/main/java/com/smartnotes/ai/db/UserDatabaseHelper.kt
+- Stores note body and date in separate fields.
+- Removes a matching date prefix when reading older rows written in the previous format.
+- Updates seeded sample notes to use the separate body/date format.
+
+Screen folder organization
+--------------------------
+Screen files are grouped under Screens/common, auth, home, profile, notes, audio,
+documents, images, meetings, and youtube. Package declarations and imports were
+updated to match these folders.
+
+Existing data note
+------------------
+Notes saved by the old 30-character limit contain only the text already stored;
+the missing portion cannot be recovered automatically. Newly saved notes retain
+their full body.
+
+Verification
+------------
+The :app:compileDebugKotlin task succeeded. No tests were run. The compiler
+reported existing deprecation warnings in other Compose and audio code.

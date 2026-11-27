@@ -161,10 +161,11 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
     }
 
     private fun seedDefaultNotes(db: SQLiteDatabase) {
+        // Store seed bodies without date prefixes; date_text is the date source.
         val sampleNotes = listOf(
-            Triple("Exam IMP Question", "08/01/26   What is UI/UX?", "08/01/26"),
-            Triple("Aman Preparation", "08/01/26   Study preparation", "08/01/26"),
-            Triple("Monthly Expense", "08/01/26   Monthly budget & bills", "08/01/26")
+            Triple("Exam IMP Question", "What is UI/UX?", "08/01/26"),
+            Triple("Aman Preparation", "Study preparation", "08/01/26"),
+            Triple("Monthly Expense", "Monthly budget & bills", "08/01/26")
         )
         for (note in sampleNotes) {
             val values = ContentValues().apply {
@@ -252,12 +253,8 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
             val db = writableDatabase ?: return -1L
             val values = ContentValues().apply {
                 put(COLUMN_NOTE_TITLE, title.ifBlank { "Untitled Note" })
-                val sub = if (subtitle.isNotBlank()) {
-                    if (subtitle.contains("/")) subtitle else "$dateText   $subtitle"
-                } else {
-                    "$dateText   Note content"
-                }
-                put(COLUMN_NOTE_SUBTITLE, sub)
+                // Keep note text verbatim; the date is stored in its own column.
+                put(COLUMN_NOTE_SUBTITLE, subtitle)
                 put(COLUMN_NOTE_DATE, dateText)
             }
             db.insert(TABLE_NOTES, null, values)
@@ -271,12 +268,8 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
             val db = writableDatabase ?: return -1
             val values = ContentValues().apply {
                 put(COLUMN_NOTE_TITLE, title.ifBlank { "Untitled Note" })
-                val sub = if (subtitle.isNotBlank()) {
-                    if (subtitle.contains("/")) subtitle else "$dateText   $subtitle"
-                } else {
-                    "$dateText   Note content"
-                }
-                put(COLUMN_NOTE_SUBTITLE, sub)
+                // Keep note text verbatim; the date is stored in its own column.
+                put(COLUMN_NOTE_SUBTITLE, subtitle)
                 put(COLUMN_NOTE_DATE, dateText)
             }
             if (noteId > 0) {
@@ -298,8 +291,14 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 do {
                     val id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_NOTE_ID))
                     val title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NOTE_TITLE))
-                    val subtitle = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NOTE_SUBTITLE)) ?: ""
+                    val storedSubtitle = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NOTE_SUBTITLE)) ?: ""
                     val dateText = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NOTE_DATE)) ?: ""
+                    // Older rows included the date in subtitle; strip only a matching legacy prefix.
+                    val subtitle = if (dateText.isBlank()) {
+                        storedSubtitle
+                    } else {
+                        storedSubtitle.replaceFirst(Regex("^${Regex.escape(dateText)}\\s+"), "")
+                    }
                     list.add(NoteModel(id, title, subtitle, dateText))
                 } while (cursor.moveToNext())
             }
