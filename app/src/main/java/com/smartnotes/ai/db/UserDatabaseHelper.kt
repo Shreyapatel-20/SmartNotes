@@ -31,7 +31,8 @@ data class AudioFileModel(
     val title: String,
     val duration: String = "12 : 45 s",
     val timestamp: String = "Today • 9:58 pm",
-    val fileUri: String = ""
+    val fileUri: String = "",
+    val type: String = "upload"
 )
 
 data class ImageModel(
@@ -48,11 +49,19 @@ data class MeetingLinkModel(
     val url: String
 )
 
+data class ScheduledMeetingModel(
+    val id: Int = 0,
+    val meetingName: String,
+    val dateText: String,
+    val timeSlot: String,
+    val keyHighlights: String
+)
+
 class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION) {
 
     companion object {
         private const val DATABASE_NAME = "SmartNotesUser.db"
-        private const val DATABASE_VERSION = 17
+        private const val DATABASE_VERSION = 19
         private const val TABLE_USER = "user_profile"
         private const val COLUMN_ID = "id"
         private const val COLUMN_NAME = "user_name"
@@ -81,6 +90,7 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         private const val COLUMN_AUDIO_DURATION = "duration"
         private const val COLUMN_AUDIO_TIMESTAMP = "timestamp"
         private const val COLUMN_AUDIO_URI = "file_uri"
+        private const val COLUMN_AUDIO_TYPE = "audio_type"
 
         private const val TABLE_IMAGES = "images"
         private const val COLUMN_IMG_ID = "img_id"
@@ -93,6 +103,13 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         private const val COLUMN_ML_ID = "ml_id"
         private const val COLUMN_ML_TITLE = "title"
         private const val COLUMN_ML_URL = "url"
+
+        private const val TABLE_SCHEDULED_MEETINGS = "scheduled_meetings"
+        private const val COLUMN_SM_ID = "sm_id"
+        private const val COLUMN_SM_NAME = "meeting_name"
+        private const val COLUMN_SM_DATE = "date_text"
+        private const val COLUMN_SM_SLOT = "time_slot"
+        private const val COLUMN_SM_HIGHLIGHTS = "key_highlights"
     }
 
     override fun onCreate(db: SQLiteDatabase) {
@@ -127,7 +144,8 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 + COLUMN_AUDIO_TITLE + " TEXT NOT NULL, "
                 + COLUMN_AUDIO_DURATION + " TEXT, "
                 + COLUMN_AUDIO_TIMESTAMP + " TEXT, "
-                + COLUMN_AUDIO_URI + " TEXT)")
+                + COLUMN_AUDIO_URI + " TEXT, "
+                + COLUMN_AUDIO_TYPE + " TEXT DEFAULT 'upload')")
         db.execSQL(createAudioTable)
 
         val createImagesTable = ("CREATE TABLE " + TABLE_IMAGES + " ("
@@ -144,6 +162,14 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 + COLUMN_ML_URL + " TEXT NOT NULL)")
         db.execSQL(createMeetingLinksTable)
 
+        val createScheduledMeetingsTable = ("CREATE TABLE " + TABLE_SCHEDULED_MEETINGS + " ("
+                + COLUMN_SM_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + COLUMN_SM_NAME + " TEXT NOT NULL, "
+                + COLUMN_SM_DATE + " TEXT, "
+                + COLUMN_SM_SLOT + " TEXT, "
+                + COLUMN_SM_HIGHLIGHTS + " TEXT)")
+        db.execSQL(createScheduledMeetingsTable)
+
         // Seed default sample data
         seedDefaultNotes(db)
         seedDefaultDocuments(db)
@@ -154,6 +180,26 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         if (oldVersion < 17) {
             try {
                 db.execSQL("DELETE FROM $TABLE_YOUTUBE WHERE $COLUMN_YT_FOLDER IN ('Youtube', 'YouTube', 'Instagram', 'Facebook')")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        if (oldVersion < 18) {
+            try {
+                db.execSQL("ALTER TABLE $TABLE_AUDIO ADD COLUMN $COLUMN_AUDIO_TYPE TEXT DEFAULT 'upload'")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+        if (oldVersion < 19) {
+            try {
+                val createScheduledMeetingsTable = ("CREATE TABLE " + TABLE_SCHEDULED_MEETINGS + " ("
+                        + COLUMN_SM_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+                        + COLUMN_SM_NAME + " TEXT NOT NULL, "
+                        + COLUMN_SM_DATE + " TEXT, "
+                        + COLUMN_SM_SLOT + " TEXT, "
+                        + COLUMN_SM_HIGHLIGHTS + " TEXT)")
+                db.execSQL(createScheduledMeetingsTable)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -447,7 +493,13 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
     }
 
     // AUDIO FILES Methods
-    fun insertAudioFile(title: String, duration: String = "12 : 45 s", timestamp: String = "Today • 9:58 pm", fileUri: String = ""): Long {
+    fun insertAudioFile(
+        title: String,
+        duration: String = "12 : 45 s",
+        timestamp: String = "Today • 9:58 pm",
+        fileUri: String = "",
+        type: String = "upload"
+    ): Long {
         return try {
             val db = writableDatabase ?: return -1L
             val values = ContentValues().apply {
@@ -455,6 +507,7 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 put(COLUMN_AUDIO_DURATION, duration)
                 put(COLUMN_AUDIO_TIMESTAMP, timestamp)
                 put(COLUMN_AUDIO_URI, fileUri)
+                put(COLUMN_AUDIO_TYPE, type)
             }
             db.insert(TABLE_AUDIO, null, values)
         } catch (e: Exception) {
@@ -462,19 +515,30 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
         }
     }
 
-    fun getAllAudioFiles(): List<AudioFileModel> {
+    fun getAllAudioFiles(type: String? = null): List<AudioFileModel> {
         val list = mutableListOf<AudioFileModel>()
         try {
             val db = readableDatabase ?: return list
-            val cursor = db.rawQuery("SELECT * FROM $TABLE_AUDIO ORDER BY $COLUMN_AUDIO_ID DESC", null)
+            val cursor = if (type.isNullOrBlank()) {
+                db.rawQuery("SELECT * FROM $TABLE_AUDIO ORDER BY $COLUMN_AUDIO_ID DESC", null)
+            } else {
+                db.rawQuery("SELECT * FROM $TABLE_AUDIO WHERE $COLUMN_AUDIO_TYPE = ? ORDER BY $COLUMN_AUDIO_ID DESC", arrayOf(type))
+            }
             if (cursor.moveToFirst()) {
+                val idIndex = cursor.getColumnIndexOrThrow(COLUMN_AUDIO_ID)
+                val titleIndex = cursor.getColumnIndexOrThrow(COLUMN_AUDIO_TITLE)
+                val durationIndex = cursor.getColumnIndexOrThrow(COLUMN_AUDIO_DURATION)
+                val timestampIndex = cursor.getColumnIndexOrThrow(COLUMN_AUDIO_TIMESTAMP)
+                val uriIndex = cursor.getColumnIndexOrThrow(COLUMN_AUDIO_URI)
+                val typeIndex = cursor.getColumnIndex(COLUMN_AUDIO_TYPE)
                 do {
-                    val id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_AUDIO_ID))
-                    val title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_AUDIO_TITLE))
-                    val duration = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_AUDIO_DURATION)) ?: "12 : 45 s"
-                    val timestamp = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_AUDIO_TIMESTAMP)) ?: "Today"
-                    val fileUri = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_AUDIO_URI)) ?: ""
-                    list.add(AudioFileModel(id, title, duration, timestamp, fileUri))
+                    val id = cursor.getInt(idIndex)
+                    val title = cursor.getString(titleIndex)
+                    val duration = cursor.getString(durationIndex) ?: "12 : 45 s"
+                    val timestamp = cursor.getString(timestampIndex) ?: "Today"
+                    val fileUri = cursor.getString(uriIndex) ?: ""
+                    val fileType = if (typeIndex != -1) cursor.getString(typeIndex) ?: "upload" else "upload"
+                    list.add(AudioFileModel(id, title, duration, timestamp, fileUri, fileType))
                 } while (cursor.moveToNext())
             }
             cursor.close()
@@ -557,6 +621,58 @@ class UserDatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_
             val db = writableDatabase ?: return -1
             db.delete(TABLE_IMAGES, "$COLUMN_IMG_FOLDER = ?", arrayOf(folderName))
         } catch (e: Exception) {
+            -1
+        }
+    }
+
+    // SCHEDULED MEETINGS Methods
+    fun insertScheduledMeeting(meetingName: String, dateText: String, timeSlot: String, keyHighlights: String): Long {
+        return try {
+            val db = writableDatabase ?: return -1L
+            val values = ContentValues().apply {
+                put(COLUMN_SM_NAME, meetingName.ifBlank { "Meeting" })
+                put(COLUMN_SM_DATE, dateText)
+                put(COLUMN_SM_SLOT, timeSlot)
+                put(COLUMN_SM_HIGHLIGHTS, keyHighlights)
+            }
+            db.insert(TABLE_SCHEDULED_MEETINGS, null, values)
+        } catch (e: Exception) {
+            -1L
+        }
+    }
+
+    fun getAllScheduledMeetings(): List<ScheduledMeetingModel> {
+        val list = mutableListOf<ScheduledMeetingModel>()
+        try {
+            val db = readableDatabase ?: return list
+            val cursor = db.rawQuery("SELECT * FROM $TABLE_SCHEDULED_MEETINGS ORDER BY $COLUMN_SM_ID DESC", null)
+            if (cursor.moveToFirst()) {
+                val idIndex = cursor.getColumnIndexOrThrow(COLUMN_SM_ID)
+                val nameIndex = cursor.getColumnIndexOrThrow(COLUMN_SM_NAME)
+                val dateIndex = cursor.getColumnIndexOrThrow(COLUMN_SM_DATE)
+                val slotIndex = cursor.getColumnIndexOrThrow(COLUMN_SM_SLOT)
+                val highlightsIndex = cursor.getColumnIndexOrThrow(COLUMN_SM_HIGHLIGHTS)
+                do {
+                    val id = cursor.getInt(idIndex)
+                    val name = cursor.getString(nameIndex) ?: "Meeting"
+                    val date = cursor.getString(dateIndex) ?: "June 14, 2026"
+                    val slot = cursor.getString(slotIndex) ?: "9:00 AM"
+                    val highlights = cursor.getString(highlightsIndex) ?: ""
+                    list.add(ScheduledMeetingModel(id, name, date, slot, highlights))
+                } while (cursor.moveToNext())
+            }
+            cursor.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return list
+    }
+
+    fun deleteScheduledMeeting(meetingId: Int): Int {
+        return try {
+            val db = writableDatabase ?: return -1
+            db.delete(TABLE_SCHEDULED_MEETINGS, "$COLUMN_SM_ID = ?", arrayOf(meetingId.toString()))
+        } catch (_: Exception) {
             -1
         }
     }

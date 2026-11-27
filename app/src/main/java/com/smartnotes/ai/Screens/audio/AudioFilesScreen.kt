@@ -76,7 +76,7 @@ fun AudioFilesScreen(
 
     LaunchedEffect(Unit) {
         if (!isPreview && dbHelper != null) {
-            audioFilesList = dbHelper.getAllAudioFiles()
+            audioFilesList = dbHelper.getAllAudioFiles(type = "upload")
         }
     }
 
@@ -244,7 +244,7 @@ fun AudioFilesScreen(
                                         onClick = {
                                             showEditDialog = false
                                             dbHelper?.updateAudioFileTitle(file.id, newTitleText)
-                                            audioFilesList = dbHelper?.getAllAudioFiles() ?: emptyList()
+                                            audioFilesList = dbHelper?.getAllAudioFiles(type = "upload") ?: emptyList()
                                         }
                                     ) {
                                         Text("Save", fontFamily = Lufga, fontWeight = FontWeight.Bold)
@@ -270,7 +270,7 @@ fun AudioFilesScreen(
                             onEditClick = { showEditDialog = true },
                             onDelete = {
                                 dbHelper?.deleteAudioFile(file.id)
-                                audioFilesList = dbHelper?.getAllAudioFiles() ?: emptyList()
+                                audioFilesList = dbHelper?.getAllAudioFiles(type = "upload") ?: emptyList()
                             }
                         )
                     }

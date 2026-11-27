@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,7 +29,14 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartnotes.ai.R
+import com.smartnotes.ai.db.ScheduledMeetingModel
+import com.smartnotes.ai.db.UserDatabaseHelper
 import com.smartnotes.ai.ui.theme.Lufga
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val DarkText = Color.Black
 
@@ -36,10 +44,22 @@ private val DarkText = Color.Black
 fun MeetingLinksScreen(
     onBackClick: () -> Unit = {},
     onRecentTabClick: () -> Unit = {},
-    onMeetingCardClick: () -> Unit = {},
+    onMeetingCardClick: (name: String, date: String, highlights: String) -> Unit = { _, _, _ -> },
     onShowScheduleClick: () -> Unit = {},
     onScheduleMeetingClick: () -> Unit = {}
 ) {
+    val isPreview = LocalInspectionMode.current
+    val context = LocalContext.current
+    val dbHelper = remember { if (isPreview) null else UserDatabaseHelper(context) }
+    var scheduledMeetingsList by remember { mutableStateOf<List<ScheduledMeetingModel>>(emptyList()) }
+    val currentDateTimeStr = remember { SimpleDateFormat("dd/MM/yy • hh:mm a", Locale.getDefault()).format(Date()) }
+
+    LaunchedEffect(Unit) {
+        if (!isPreview && dbHelper != null) {
+            scheduledMeetingsList = dbHelper.getAllScheduledMeetings()
+        }
+    }
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedTab by remember { mutableIntStateOf(0) } // 0: Upcoming, 1: Recent
 
@@ -207,6 +227,21 @@ fun MeetingLinksScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(bottom = 20.dp)
             ) {
+                scheduledMeetingsList.forEach { meeting ->
+                    item {
+                        SwipeableMeetingCard(
+                            meeting = meeting,
+                            backgroundColor = Color(0xFFD1F1EF),
+                            innerBoxColor = Color(0xFFE4F9F6),
+                            onCardClick = onMeetingCardClick,
+                            onDelete = {
+                                dbHelper?.deleteScheduledMeeting(meeting.id)
+                                scheduledMeetingsList = dbHelper?.getAllScheduledMeetings() ?: emptyList()
+                            }
+                        )
+                    }
+                }
+
                 // CARD 1: Weekly Team Meeting
                 item {
                     MeetingCard(
@@ -214,10 +249,10 @@ fun MeetingLinksScreen(
                         innerBoxColor = Color(0xFFFEF1F4),
                         badgeText = "Next Meeting",
                         title = "Weekly Team Meeting",
-                        timeText = "Today • 10:30 AM",
+                        timeText = currentDateTimeStr,
                         startInText = "2h 15m",
                         joinButtonColor = Color(0xFFFFC5D3),
-                        onCardClick = onMeetingCardClick
+                        onCardClick = { onMeetingCardClick("Weekly Team Meeting", "June 18, 2026", "UI Design Approval granted for the new dashboard layout.") }
                     )
                 }
 
@@ -228,10 +263,10 @@ fun MeetingLinksScreen(
                         innerBoxColor = Color(0xFFFFF9E5),
                         badgeText = "Next Meeting",
                         title = "Project Meeting",
-                        timeText = "Today • 04:30 PM",
+                        timeText = currentDateTimeStr,
                         startInText = "6h 23m",
                         joinButtonColor = Color(0xFFFFE8A8),
-                        onCardClick = onMeetingCardClick
+                        onCardClick = { onMeetingCardClick("Project Meeting", "June 18, 2026", "Reviewed project milestones and assigned tasks.") }
                     )
                 }
 
@@ -496,8 +531,122 @@ fun MeetingCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeableMeetingCard(
+    meeting: ScheduledMeetingModel,
+    backgroundColor: Color,
+    innerBoxColor: Color,
+    onCardClick: (name: String, date: String, highlights: String) -> Unit,
+    onDelete: () -> Unit
+) {
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                showDeleteDialog = true
+                false
+            } else {
+                false
+            }
+        }
+    )
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete Meeting", fontFamily = Lufga, fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete meeting '${meeting.meetingName}'?", fontFamily = Lufga) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDelete()
+                    }
+                ) {
+                    Text("Delete", color = Color.Red, fontFamily = Lufga, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel", fontFamily = Lufga)
+                }
+            }
+        )
+    }
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(30.dp))
+                    .background(Color(0xFFE53935))
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Text(
+                        text = "Delete",
+                        color = Color.White,
+                        fontFamily = Lufga,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
+            }
+        },
+        content = {
+            MeetingCard(
+                backgroundColor = backgroundColor,
+                innerBoxColor = innerBoxColor,
+                badgeText = "Next Meeting",
+                title = meeting.meetingName,
+                timeText = "${meeting.dateText} • ${meeting.timeSlot}",
+                startInText = calculateTimeRemaining(meeting.dateText, meeting.timeSlot),
+                joinButtonColor = Color(0xFFB5EAEA),
+                onCardClick = { onCardClick(meeting.meetingName, meeting.dateText, meeting.keyHighlights) }
+            )
+        },
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true
+    )
+}
+
 @Preview(showBackground = true)
 @Composable
 fun MeetingLinksScreenPreview() {
     MeetingLinksScreen()
+}
+
+private fun calculateTimeRemaining(dateStr: String, slotStr: String): String {
+    return try {
+        val format = SimpleDateFormat("MMMM d, yyyy h:mm a", Locale.getDefault())
+        val targetDate = format.parse("$dateStr $slotStr") ?: return "2h 15m"
+        val diffMillis = targetDate.time - System.currentTimeMillis()
+        if (diffMillis <= 0) {
+            return "Now"
+        }
+        val hours = diffMillis / (1000 * 60 * 60)
+        val minutes = (diffMillis / (1000 * 60)) % 60
+        val days = hours / 24
+        val remHours = hours % 24
+        if (days > 0) {
+            "${days}d ${remHours}h"
+        } else {
+            "${hours}h ${minutes}m"
+        }
+    } catch (_: Exception) {
+        "2h 15m"
+    }
 }

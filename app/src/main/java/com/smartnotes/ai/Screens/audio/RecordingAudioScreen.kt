@@ -138,7 +138,8 @@ fun RecordingAudioScreen(
                             dbHelper?.insertAudioFile(
                                 title = customRecordingName.ifBlank { "Voice Recording" },
                                 timestamp = timestamp,
-                                fileUri = recordedFilePath
+                                fileUri = recordedFilePath,
+                                type = "recording"
                             )
                         }
                         onCloseClick()
@@ -156,7 +157,8 @@ fun RecordingAudioScreen(
                             dbHelper?.insertAudioFile(
                                 title = "Voice Recording",
                                 timestamp = timestamp,
-                                fileUri = recordedFilePath
+                                fileUri = recordedFilePath,
+                                type = "recording"
                             )
                         }
                         onCloseClick()

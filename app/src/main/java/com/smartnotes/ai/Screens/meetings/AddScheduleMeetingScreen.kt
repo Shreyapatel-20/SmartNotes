@@ -30,7 +30,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartnotes.ai.R
+import com.smartnotes.ai.db.UserDatabaseHelper
 import com.smartnotes.ai.ui.theme.Lufga
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 private val DarkText = Color(0xFF000000)
 
@@ -40,8 +46,29 @@ fun AddScheduleMeetingScreen(
     onMeetingToggleClick: () -> Unit = {},
     onContinueClick: () -> Unit = {}
 ) {
+    val isPreview = LocalInspectionMode.current
+    val context = LocalContext.current
+    val dbHelper = remember { if (isPreview) null else UserDatabaseHelper(context) }
+
+    val calendar = remember { Calendar.getInstance() }
+    val monthYearStr = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(calendar.time) }
+    val daysList = remember {
+        val list = mutableListOf<Pair<String, Int>>()
+        val dayOfWeekFormat = SimpleDateFormat("E", Locale.getDefault())
+        val tempCal = calendar.clone() as Calendar
+        tempCal.add(Calendar.DAY_OF_YEAR, -3)
+        repeat(7) {
+            val dayName = dayOfWeekFormat.format(tempCal.time).take(3)
+            val dayNum = tempCal.get(Calendar.DAY_OF_MONTH)
+            list.add(dayName to dayNum)
+            tempCal.add(Calendar.DAY_OF_YEAR, 1)
+        }
+        list
+    }
+
+    val todayDayNum = calendar.get(Calendar.DAY_OF_MONTH)
     var meetingName by remember { mutableStateOf("") }
-    var selectedDate by remember { mutableIntStateOf(14) }
+    var selectedDate by remember { mutableIntStateOf(todayDayNum) }
     var selectedSlot by remember { mutableStateOf("9:00 AM") }
     var keyHighlights by remember { mutableStateOf("") }
 
@@ -228,7 +255,7 @@ fun AddScheduleMeetingScreen(
                         )
 
                         Text(
-                            text = "June 2026",
+                            text = monthYearStr,
                             fontFamily = Lufga,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Normal,
@@ -249,12 +276,7 @@ fun AddScheduleMeetingScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        val days = listOf(
-                            "Sun" to 12, "Mon" to 13, "Tue" to 14,
-                            "Wed" to 15, "Thu" to 16, "Fri" to 17, "Sat" to 18
-                        )
-
-                        days.forEach { (day, dateNum) ->
+                        daysList.forEach { (day, dateNum) ->
                             val isSelected = (dateNum == selectedDate)
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -435,7 +457,21 @@ fun AddScheduleMeetingScreen(
                     .padding(bottom = 28.dp)
             ) {
                 Button(
-                    onClick = onContinueClick,
+                    onClick = {
+                        val trimmedName = meetingName.trim()
+                        if (trimmedName.isNotBlank()) {
+                            val monthStr = SimpleDateFormat("MMMM", Locale.getDefault()).format(calendar.time)
+                            val yearStr = SimpleDateFormat("yyyy", Locale.getDefault()).format(calendar.time)
+                            val dateText = "$monthStr $selectedDate, $yearStr"
+                            dbHelper?.insertScheduledMeeting(
+                                meetingName = trimmedName,
+                                dateText = dateText,
+                                timeSlot = selectedSlot,
+                                keyHighlights = keyHighlights.trim()
+                            )
+                        }
+                        onContinueClick()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(58.dp),

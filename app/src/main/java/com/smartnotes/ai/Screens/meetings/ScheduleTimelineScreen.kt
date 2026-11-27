@@ -31,8 +31,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartnotes.ai.R
+import com.smartnotes.ai.db.ScheduledMeetingModel
+import com.smartnotes.ai.db.UserDatabaseHelper
 import com.smartnotes.ai.ui.theme.Lufga
 import androidx.compose.ui.modifier.*
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 private val DarkText = Color(0xFF000000)
 
@@ -51,29 +59,65 @@ fun ScheduleTimelineScreen(
     onScheduleTabClick: () -> Unit = {},
     onMeetingCardClick: () -> Unit = {}
 ) {
-    var selectedDayIndex by remember { mutableIntStateOf(2) } // Tue 14 default
-    var selectedSegmentTab by remember { mutableIntStateOf(0) } // 0: Meeting, 1: Schedule
+    val isPreview = LocalInspectionMode.current
+    val context = LocalContext.current
+    val dbHelper = remember { if (isPreview) null else UserDatabaseHelper(context) }
+    var scheduledMeetingsList by remember { mutableStateOf<List<ScheduledMeetingModel>>(emptyList()) }
+    val monthYearStr = remember { SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()) }
+
+    LaunchedEffect(Unit) {
+        if (!isPreview && dbHelper != null) {
+            scheduledMeetingsList = dbHelper.getAllScheduledMeetings()
+        }
+    }
 
     val daysList = remember {
+        val list = mutableListOf<Pair<String, String>>()
+        val dayOfWeekFormat = SimpleDateFormat("E", Locale.getDefault())
+        val tempCal = Calendar.getInstance()
+        repeat(7) {
+            val dayName = dayOfWeekFormat.format(tempCal.time).take(3)
+            val dayNum = tempCal.get(Calendar.DAY_OF_MONTH).toString()
+            list.add(dayName to dayNum)
+            tempCal.add(Calendar.DATE, 1)
+        }
+        list
+    }
+
+    var selectedDayIndex by remember { mutableIntStateOf(0) } // Default to today (index 0)
+    var selectedSegmentTab by remember { mutableIntStateOf(0) } // 0: Meeting, 1: Schedule
+
+    val selectedDayPair = daysList.getOrNull(selectedDayIndex) ?: ("Tue" to "14")
+    val selectedDayNum = selectedDayPair.second
+
+    val activeMeetings = scheduledMeetingsList.filter { meeting ->
+        isMeetingOnDate(meeting.dateText, selectedDayNum, monthYearStr)
+    }
+
+    val pastelColors = remember {
         listOf(
-            "Sun" to "12",
-            "Mon" to "13",
-            "Tue" to "14",
-            "Wed" to "15",
-            "Thu" to "16",
-            "Fri" to "17",
-            "Sat" to "18"
+            Color(0xFFE2D8FD) to Color(0xFF8B5CF6),
+            Color(0xFFD0F2EF) to Color(0xFF14B8A6),
+            Color(0xFFFFD8D8) to Color(0xFFF43F5E),
+            Color(0xFFFFF3C4) to Color(0xFFEAB308),
+            Color(0xFFF3E8FF) to Color(0xFFA855F7)
         )
     }
 
-    val timelineMeetings = remember {
-        listOf(
-            TimelineMeetingData("09 AM", "10 AM", "Meeting 1", cardBackgroundColor = Color(0xFFE2D8FD), accentStripeColor = Color(0xFF8B5CF6)),
-            TimelineMeetingData("11 AM", "12 AM", "Meeting 2", cardBackgroundColor = Color(0xFFD0F2EF), accentStripeColor = Color(0xFF14B8A6)),
-            TimelineMeetingData("11 AM", "12 AM", "Meeting 3", cardBackgroundColor = Color(0xFFFFD8D8), accentStripeColor = Color(0xFFF43F5E)),
-            TimelineMeetingData("11 AM", "12 AM", "Meeting 4", cardBackgroundColor = Color(0xFFFFF3C4), accentStripeColor = Color(0xFFEAB308)),
-            TimelineMeetingData("11 AM", "12 AM", "Meeting 5", cardBackgroundColor = Color(0xFFF3E8FF), accentStripeColor = Color(0xFFA855F7))
-        )
+    val timelineMeetings = if (activeMeetings.isNotEmpty()) {
+        activeMeetings.mapIndexed { index, meeting ->
+            val colorPair = pastelColors[index % pastelColors.size]
+            TimelineMeetingData(
+                startTime = meeting.timeSlot.takeIf { it.isNotBlank() } ?: "09 AM",
+                endTime = "10 AM",
+                title = meeting.meetingName,
+                subtitle = meeting.keyHighlights.ifBlank { "No key highlights provided." },
+                cardBackgroundColor = colorPair.first,
+                accentStripeColor = colorPair.second
+            )
+        }
+    } else {
+        emptyList()
     }
 
     Box(
@@ -233,7 +277,7 @@ fun ScheduleTimelineScreen(
                         )
 
                         Text(
-                            text = "June 2026",
+                            text = monthYearStr,
                             fontFamily = Lufga,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Normal,
@@ -463,4 +507,19 @@ fun TimelineMeetingCardRow(
 @Composable
 fun ScheduleTimelineScreenPreview() {
     ScheduleTimelineScreen()
+}
+
+private fun isMeetingOnDate(meetingDateText: String, dayNumStr: String, monthYearStr: String): Boolean {
+    return try {
+        val format = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+        val date = format.parse(meetingDateText) ?: return false
+        val cal = Calendar.getInstance().apply { time = date }
+        val meetingDay = cal.get(Calendar.DAY_OF_MONTH).toString()
+        val meetingMonthYear = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(date)
+        meetingDay == dayNumStr && meetingMonthYear.equals(monthYearStr, ignoreCase = true)
+    } catch (_: Exception) {
+        val parts = meetingDateText.replace(",", "").split(" ")
+        val dayPart = parts.getOrNull(1)
+        dayPart == dayNumStr
+    }
 }

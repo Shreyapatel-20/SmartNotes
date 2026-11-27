@@ -30,6 +30,9 @@ import com.smartnotes.ai.R
 import com.smartnotes.ai.db.UserDatabaseHelper
 import com.smartnotes.ai.db.YouTubeNoteModel
 import com.smartnotes.ai.ui.theme.Lufga
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 private val DarkText = Color(0xFF242529)
 
@@ -59,6 +62,7 @@ fun UrlFilesScreen(
     }
 
     val folderGroups = ytNotesList.groupBy { it.folderName }
+    val currentDate = remember { SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(Date()) }
     val pastelColors = listOf(
         Color(0xFFF2E2FE) to Color(0xFFF0EDFF),
         Color(0xFFC9F0EE) to Color(0xFFE4F9F6),
@@ -93,7 +97,7 @@ fun UrlFilesScreen(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(36.dp)                        .size(32.dp)
                         .background(Color.Transparent)
                         .clickable { onBackClick() },
                     contentAlignment = Alignment.Center
@@ -162,7 +166,7 @@ fun UrlFilesScreen(
                         key = { it.key }
                     ) { (folderName, itemsInFolder) ->
                         val colorPair = pastelColors[folderName.hashCode().let { if (it < 0) -it else it } % pastelColors.size]
-                        val detailsText = "08/01/26   ${itemsInFolder.size} links"
+                        val detailsText = "$currentDate   ${itemsInFolder.size} links"
 
                         val folderData = UrlFolderData(
                             title = folderName,

@@ -33,13 +33,16 @@ private val DarkText = Color(0xFF242529)
 
 @Composable
 fun MeetingNotesScreen(
+    meetingName: String = "Weekly Team Meeting",
+    meetingDate: String = "June 18, 2026",
+    keyHighlightsText: String = "",
     onBackClick: () -> Unit = {}
 ) {
-    val keyHighlights = listOf(
-        "UI Design Approval granted for the new dashboard layout.",
-        "UI Design Approval granted for the new dashboard layout.",
-        "UI Design Approval granted for the new dashboard layout."
-    )
+    val highlightsList = if (keyHighlightsText.isNotBlank()) {
+        keyHighlightsText.split("\n").filter { it.isNotBlank() }
+    } else {
+        listOf("UI Design Approval granted for the new dashboard layout.")
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -110,7 +113,7 @@ fun MeetingNotesScreen(
                             .padding(20.dp)
                     ) {
                         Text(
-                            text = "Weekly Team Meeting",
+                            text = meetingName,
                             fontFamily = Lufga,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -127,14 +130,14 @@ fun MeetingNotesScreen(
                             // Date
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.CalendarToday,
+                                    painter = painterResource(R.drawable.date),
                                     contentDescription = null,
                                     tint = Color(0xFF777780),
                                     modifier = Modifier.size(15.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "June 18, 2026",
+                                    text = meetingDate,
                                     fontFamily = Lufga,
                                     fontSize = 14.sp,
                                     color = Color(0xFF777780)
@@ -144,7 +147,7 @@ fun MeetingNotesScreen(
                             // Platform
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.Videocam,
+                                    painter=painterResource(R.drawable.video),
                                     contentDescription = null,
                                     tint = Color(0xFF777780),
                                     modifier = Modifier.size(15.dp)
@@ -161,7 +164,7 @@ fun MeetingNotesScreen(
                             // Members
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = Icons.Default.Group,
+                                    painter=painterResource(R.drawable.member),
                                     contentDescription = null,
                                     tint = Color(0xFF777780),
                                     modifier = Modifier.size(15.dp)
@@ -199,7 +202,7 @@ fun MeetingNotesScreen(
                         Column(
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            keyHighlights.forEach { highlight ->
+                            highlightsList.forEach { highlight ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     verticalAlignment = Alignment.Top

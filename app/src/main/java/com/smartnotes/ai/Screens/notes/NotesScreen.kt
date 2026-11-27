@@ -212,12 +212,12 @@ fun NotesScreen(
                         title = "Audio Notes",
                         subtitle = "Saved audio notes",
                         tag = "Audio",
-                        tagColor = Color(0xFF422BC4),
+                        tagColor = Color(0xFFD4AB33),
                         icon = painterResource(R.drawable.microphone),
                         iconTintColor = Color.Black,
-                        backgroundColor = Color(0xFFE1DBFF),
-                        iconbackgroundcolor = Color(0xffF0EDFF),
-                        arrowColor = Color(0xFF422BC4)
+                        backgroundColor = Color(0xFFFFF3D3),
+                        iconbackgroundcolor = Color(0xffFFF9E5),
+                        arrowColor = Color(0xFFD4AB33)
                     ),
                     NoteCardData(
                         title = "Document file",

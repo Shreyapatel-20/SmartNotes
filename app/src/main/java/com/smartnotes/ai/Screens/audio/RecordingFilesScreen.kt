@@ -75,7 +75,7 @@ fun RecordingFilesScreen(
 
     LaunchedEffect(Unit) {
         if (!isPreview && dbHelper != null) {
-            recordingFilesList = dbHelper.getAllAudioFiles()
+            recordingFilesList = dbHelper.getAllAudioFiles(type = "recording")
         }
     }
 
@@ -244,7 +244,7 @@ fun RecordingFilesScreen(
                                         onClick = {
                                             showEditDialog = false
                                             dbHelper?.updateAudioFileTitle(file.id, newTitleText)
-                                            recordingFilesList = dbHelper?.getAllAudioFiles() ?: emptyList()
+                                            recordingFilesList = dbHelper?.getAllAudioFiles(type = "recording") ?: emptyList()
                                         }
                                     ) {
                                         Text("Save", fontFamily = Lufga, fontWeight = FontWeight.Bold)
@@ -270,7 +270,7 @@ fun RecordingFilesScreen(
                             onEditClick = { showEditDialog = true },
                             onDelete = {
                                 dbHelper?.deleteAudioFile(file.id)
-                                recordingFilesList = dbHelper?.getAllAudioFiles() ?: emptyList()
+                                recordingFilesList = dbHelper?.getAllAudioFiles(type = "recording") ?: emptyList()
                             }
                         )
                     }

@@ -13,6 +13,7 @@ import com.smartnotes.ai.Screens.images.AddImageFolderScreen
 import com.smartnotes.ai.Screens.images.AddImageScreen
 import com.smartnotes.ai.Screens.meetings.AddScheduleMeetingScreen
 import com.smartnotes.ai.Screens.youtube.AddYouTubeLinkScreen
+import com.smartnotes.ai.Screens.meetings.AddMeetingLinkScreen
 import com.smartnotes.ai.Screens.audio.AudioFilesScreen
 import com.smartnotes.ai.Screens.audio.AudioUploadScreen
 import com.smartnotes.ai.Screens.documents.DocumentFilesScreen
@@ -57,6 +58,9 @@ class MainActivity : ComponentActivity() {
             var selectedFileUri by remember { mutableStateOf("") }
             var selectedDocTitle by remember { mutableStateOf("Resume") }
             var selectedFolderTitle by remember { mutableStateOf("Nature") }
+            var selectedMeetingName by remember { mutableStateOf("Weekly Team Meeting") }
+            var selectedMeetingDate by remember { mutableStateOf("June 18, 2026") }
+            var selectedMeetingHighlights by remember { mutableStateOf("UI Design Approval granted for the new dashboard layout.") }
 
             when (currentScreen) {
 
@@ -78,6 +82,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onNavigateToYouTubeNotes = {
                             currentScreen = "youtube_notes"
+                        },
+                        onNavigateUrlFiles = {
+                            currentScreen = "url_files"
                         },
                         onNavigateToRecordingAudio = {
                             currentScreen = "recording_audio"
@@ -186,7 +193,10 @@ class MainActivity : ComponentActivity() {
                         onRecentTabClick = {
                             currentScreen = "recent_meeting_links"
                         },
-                        onMeetingCardClick = {
+                        onMeetingCardClick = { name, date, highlights ->
+                            selectedMeetingName = name
+                            selectedMeetingDate = date
+                            selectedMeetingHighlights = highlights
                             currentScreen = "meeting_notes"
                         },
                         onShowScheduleClick = {
@@ -253,6 +263,9 @@ class MainActivity : ComponentActivity() {
 
                 "meeting_notes" -> {
                     MeetingNotesScreen(
+                        meetingName = selectedMeetingName,
+                        meetingDate = selectedMeetingDate,
+                        keyHighlightsText = selectedMeetingHighlights,
                         onBackClick = {
                             currentScreen = "meeting_links"
                         }
@@ -265,7 +278,7 @@ class MainActivity : ComponentActivity() {
                             currentScreen = "home"
                         },
                         onCloseClick = {
-                            currentScreen = "home"
+                            currentScreen = "recording_files"
                         }
                     )
                 }
@@ -287,7 +300,7 @@ class MainActivity : ComponentActivity() {
                             currentScreen = "home"
                         },
                         onContinueClick = { title, fileUri ->
-                            dbHelper.insertAudioFile(title = title, fileUri = fileUri)
+                            dbHelper.insertAudioFile(title = title, fileUri = fileUri, type = "upload")
                             currentScreen = "audio_files"
                         }
                     )
@@ -414,11 +427,12 @@ class MainActivity : ComponentActivity() {
 
                 "youtube_notes" -> {
                     YouTubeNotesScreen(
+                        folderTitle = selectedFolderTitle,
                         onBackClick = {
-                            currentScreen = "home"
+                            currentScreen = "url_files"
                         },
                         onAddNewLinkClick = {
-                            currentScreen = "add_youtube_link"
+                            currentScreen = "add_meeting_link"
                         }
                     )
                 }
@@ -431,7 +445,20 @@ class MainActivity : ComponentActivity() {
                         onNewLinksClick = {
                             currentScreen = "add_youtube_link"
                         },
-                        onFolderClick = {
+                        onFolderClick = { folderName ->
+                            selectedFolderTitle = folderName
+                            currentScreen = "youtube_notes"
+                        }
+                    )
+                }
+
+                "add_meeting_link" -> {
+                    AddMeetingLinkScreen(
+                        folderTitle = selectedFolderTitle,
+                        onBackClick = {
+                            currentScreen = "youtube_notes"
+                        },
+                        onContinueClick = { _, _ ->
                             currentScreen = "youtube_notes"
                         }
                     )
