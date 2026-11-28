@@ -2,8 +2,6 @@ package com.smartnotes.ai.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.ai.client.generativeai.BuildConfig
-import com.google.ai.client.generativeai.GenerativeModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,11 +11,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.OutputStreamWriter
+import java.io.IOException
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
+import java.net.UnknownHostException
+import java.nio.charset.StandardCharsets
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.UUID
-
 
 data class ChatMessageItem(
     val id: String = UUID.randomUUID().toString(),
@@ -25,7 +28,8 @@ data class ChatMessageItem(
     val isUser: Boolean,
     val timestamp: String = "Just now",
     val isError: Boolean = false,
-    val showAttachment: Boolean = false
+    val showAttachment: Boolean = false,
+    val isLocalOnly: Boolean = false
 )
 
 data class AiChatUiState(
@@ -34,41 +38,20 @@ data class AiChatUiState(
     val errorMessage: String? = null
 )
 
-class AiChatViewModel : ViewModel() {
+class AiChatViewModel(private val apiKey: String) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiChatUiState())
     val uiState: StateFlow<AiChatUiState> = _uiState.asStateFlow()
 
-    private val apiKey = "YOUR_api_key"
-    //private val apiKey= BuildConfig.GEMINI_API_KEY
-    private val generativeModel by lazy {
-        try {
-            GenerativeModel(
-                modelName = "gemini-2.0-flash",
-                apiKey = apiKey
-            )
-        } catch (_: Throwable) {
-            null
-        }
-    }
-
-    private val chatSession by lazy {
-        try {
-            generativeModel?.startChat()
-        } catch (_: Throwable) {
-            null
-        }
-    }
-
     init {
-        // Welcome message
-        _uiState.update { currentState ->
-            currentState.copy(
+        _uiState.update { state ->
+            state.copy(
                 messages = listOf(
                     ChatMessageItem(
                         text = "Hello! I am your AI Assistant powered by Gemini. Ask me anything about your notes, meetings, or general questions!",
                         isUser = false,
-                        timestamp = "Just now"
+                        timestamp = "Just now",
+                        isLocalOnly = true
                     )
                 )
             )
@@ -79,6 +62,13 @@ class AiChatViewModel : ViewModel() {
         val trimmedPrompt = prompt.trim()
         if (trimmedPrompt.isEmpty()) return
 
+        val currentState = _uiState.value
+        if (currentState.isLoading) return
+
+        // Capture only completed conversation turns before adding the current prompt.
+        val conversationHistory = completedConversation(
+            currentState.messages.filter { !it.isError && !it.isLocalOnly }
+        )
         val userMsg = ChatMessageItem(
             text = trimmedPrompt,
             isUser = true,
@@ -93,31 +83,21 @@ class AiChatViewModel : ViewModel() {
             )
         }
 
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
-                val replyText = callGeminiRestApi(trimmedPrompt, apiKey, _uiState.value.messages)
+                val configuredApiKey = apiKey.trim().takeIf { it.isNotBlank() }
+                    ?: throw MissingGeminiApiKeyException()
+                val replyText = callGeminiRestApi(trimmedPrompt, configuredApiKey, conversationHistory)
                 val aiMsg = ChatMessageItem(
                     text = replyText,
                     isUser = false,
                     timestamp = getCurrentTime()
                 )
                 _uiState.update { state ->
-                    state.copy(
-                        messages = state.messages + aiMsg,
-                        isLoading = false
-                    )
+                    state.copy(messages = state.messages + aiMsg, isLoading = false)
                 }
             } catch (e: Exception) {
-                val friendlyError = when {
-                    e.message?.contains("429") == true || e.message?.contains("quota") == true ->
-                        "Rate limit reached. Please wait a moment and try again."
-                    e.message?.contains("401") == true ->
-                        "Authentication failed. Please check your Gemini API key."
-                    e.message?.contains("Unable to resolve host") == true || e is java.net.UnknownHostException ->
-                        "Network error. Please check your internet connection."
-                    else -> "Error: ${e.localizedMessage ?: "Failed to receive response"}"
-                }
-
+                val friendlyError = getFriendlyError(e)
                 val errorMsg = ChatMessageItem(
                     text = friendlyError,
                     isUser = false,
@@ -140,101 +120,144 @@ class AiChatViewModel : ViewModel() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    private fun getCurrentTime(): String {
-        return try {
-            val sdf = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
-            sdf.format(java.util.Date())
-        } catch (_: Exception) {
-            "Just now"
+    private fun getFriendlyError(error: Exception): String = when (error) {
+        is MissingGeminiApiKeyException -> "Add your Gemini API key using the API key button, then try again."
+        is GeminiApiException -> when (error.statusCode) {
+            400 -> "Gemini rejected the request: ${error.apiMessage}"
+            401 -> "Gemini rejected the API key. Check the key in Google AI Studio and update it here."
+            403 -> "This key or project cannot use the Gemini API. Check its API access and free-tier eligibility in Google AI Studio."
+            404 -> "The Gemini model or API endpoint was not found. Check the model name or API availability."
+            429 -> "Gemini free-tier quota or rate limit reached. Check your usage and try again later."
+            in 500..599 -> "Gemini is temporarily unavailable. Please try again shortly."
+            else -> "Gemini request failed (HTTP ${error.statusCode}): ${error.apiMessage}"
         }
+        is GeminiResponseException -> error.message ?: "Gemini returned no text. Please try again."
+        is UnknownHostException -> "Network error. Check your internet connection and try again."
+        is SocketTimeoutException -> "Gemini took too long to respond. Please try again."
+        is IOException -> "Network error while contacting Gemini: ${error.localizedMessage ?: "Please try again."}"
+        else -> "Could not get a Gemini response: ${error.localizedMessage ?: "Please try again."}"
+    }
+
+    private fun getCurrentTime(): String = try {
+        SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date())
+    } catch (_: Exception) {
+        "Just now"
+    }
+
+    private fun completedConversation(messages: List<ChatMessageItem>): List<ChatMessageItem> {
+        val completed = mutableListOf<ChatMessageItem>()
+        var pendingUserMessage: ChatMessageItem? = null
+
+        messages.forEach { message ->
+            if (message.isUser) {
+                pendingUserMessage = message
+            } else {
+                pendingUserMessage?.let { userMessage ->
+                    completed += userMessage
+                    completed += message
+                    pendingUserMessage = null
+                }
+            }
+        }
+        return completed
     }
 
     private suspend fun callGeminiRestApi(
         prompt: String,
         apiKey: String,
         history: List<ChatMessageItem>
-    ): String {
-        return withContext(Dispatchers.IO) {
-            val modelsToTry = listOf("gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-2.0-flash")
-            var lastError = "Failed to connect to Gemini."
+    ): String = withContext(Dispatchers.IO) {
+        val contentsArray = JSONArray()
+        history
+            .takeLast(MAX_HISTORY_MESSAGES)
+            .dropWhile { !it.isUser }
+            .forEach { message -> contentsArray.put(message.toGeminiContent()) }
+        contentsArray.put(ChatMessageItem(text = prompt, isUser = true).toGeminiContent())
 
-            for (model in modelsToTry) {
-                try {
-                    val encodedKey = java.net.URLEncoder.encode(apiKey, "UTF-8")
-                    val urlString = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$encodedKey"
+        val requestBody = JSONObject().put("contents", contentsArray)
+        val connection = (URL("$API_BASE_URL/$MODEL_NAME:generateContent").openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            setRequestProperty("Content-Type", "application/json; charset=utf-8")
+            setRequestProperty("x-goog-api-key", apiKey)
+            connectTimeout = CONNECTION_TIMEOUT_MS
+            readTimeout = READ_TIMEOUT_MS
+            doOutput = true
+        }
 
-                    val connection = (URL(urlString).openConnection() as HttpURLConnection).apply {
-                        requestMethod = "POST"
-                        setRequestProperty("Content-Type", "application/json")
-                        setRequestProperty("x-goog-api-key", apiKey)
-                        setRequestProperty("Authorization", "Bearer $apiKey")
-                        doOutput = true
-                        connectTimeout = 15000
-                        readTimeout = 15000
+        try {
+            connection.outputStream.use { output ->
+                output.write(requestBody.toString().toByteArray(StandardCharsets.UTF_8))
+            }
+
+            val responseCode = connection.responseCode
+            val responseBody = (if (responseCode in 200..299) connection.inputStream else connection.errorStream)
+                ?.bufferedReader(StandardCharsets.UTF_8)
+                ?.use { it.readText() }
+                .orEmpty()
+
+            if (responseCode !in 200..299) {
+                val apiMessage = try {
+                    JSONObject(responseBody).optJSONObject("error")
+                        ?.optString("message")
+                        ?.takeIf { it.isNotBlank() }
+                } catch (_: Exception) {
+                    null
+                } ?: "No error details returned."
+                throw GeminiApiException(responseCode, apiMessage)
+            }
+
+            parseGeminiResponse(responseBody)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun parseGeminiResponse(responseBody: String): String {
+        val response = JSONObject(responseBody)
+        val candidates = response.optJSONArray("candidates")
+        val firstCandidate = candidates?.optJSONObject(0)
+            ?: throw GeminiResponseException("Gemini did not return a response candidate. Please try rephrasing your message.")
+        val parts = firstCandidate.optJSONObject("content")?.optJSONArray("parts")
+        val reply = buildString {
+            if (parts != null) {
+                for (index in 0 until parts.length()) {
+                    val part = parts.optJSONObject(index) ?: continue
+                    if (part.has("text") && part.opt("text") != JSONObject.NULL) {
+                        append(part.optString("text"))
                     }
-
-                    val contentsArray = JSONArray()
-                    for (msg in history.takeLast(10)) {
-                        if (msg.isError) continue
-                        val role = if (msg.isUser) "user" else "model"
-                        contentsArray.put(JSONObject().apply {
-                            put("role", role)
-                            put("parts", JSONArray().apply {
-                                put(JSONObject().apply {
-                                    put("text", msg.text)
-                                })
-                            })
-                        })
-                    }
-
-                    contentsArray.put(JSONObject().apply {
-                        put("role", "user")
-                        put("parts", JSONArray().apply {
-                            put(JSONObject().apply {
-                                put("text", prompt)
-                            })
-                        })
-                    })
-
-                    val jsonBody = JSONObject().apply {
-                        put("contents", contentsArray)
-                    }
-
-                    OutputStreamWriter(connection.outputStream).use { writer ->
-                        writer.write(jsonBody.toString())
-                        writer.flush()
-                    }
-
-                    val responseCode = connection.responseCode
-                    if (responseCode == HttpURLConnection.HTTP_OK) {
-                        val responseString = connection.inputStream.bufferedReader().use { it.readText() }
-                        val jsonResponse = JSONObject(responseString)
-                        val candidates = jsonResponse.optJSONArray("candidates")
-                        if (candidates != null && candidates.length() > 0) {
-                            val candidate = candidates.getJSONObject(0)
-                            val content = candidate.optJSONObject("content")
-                            val parts = content?.optJSONArray("parts")
-                            if (parts != null && parts.length() > 0) {
-                                return@withContext parts.getJSONObject(0).optString("text", "No text response.")
-                            }
-                        }
-                        return@withContext "No valid response received from Gemini."
-                    } else {
-                        val errorString = connection.errorStream?.bufferedReader()?.use { it.readText() } ?: "Unknown error"
-                        lastError = when (responseCode) {
-                            429 -> "Rate limit reached (429). Please wait a few seconds and try again."
-                            401 -> "API Error (401): Unauthorized key."
-                            else -> "API Error ($responseCode): $errorString"
-                        }
-                        if (responseCode != 404) {
-                            return@withContext lastError
-                        }
-                    }
-                } catch (e: Exception) {
-                    lastError = "Network error: ${e.localizedMessage ?: "Please check internet connection"}"
                 }
             }
-            lastError
+        }.trim()
+
+        if (reply.isEmpty()) {
+            val blockReason = response.optJSONObject("promptFeedback")?.optString("blockReason")
+            val message = if (!blockReason.isNullOrBlank()) {
+                "Gemini blocked this prompt ($blockReason). Please rephrase it."
+            } else {
+                "Gemini returned no text. Please try again."
+            }
+            throw GeminiResponseException(message)
         }
+        return reply
+    }
+
+    private fun ChatMessageItem.toGeminiContent(): JSONObject = JSONObject().apply {
+        put("role", if (isUser) "user" else "model")
+        put("parts", JSONArray().put(JSONObject().put("text", text)))
+    }
+
+    private class MissingGeminiApiKeyException : Exception()
+
+    private class GeminiResponseException(message: String) : Exception(message)
+
+    private class GeminiApiException(val statusCode: Int, val apiMessage: String) :
+        Exception("Gemini API error $statusCode: $apiMessage")
+
+    private companion object {
+        const val API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models"
+        const val MODEL_NAME = "gemini-3.5-flash-lite"
+        const val MAX_HISTORY_MESSAGES = 12
+        const val CONNECTION_TIMEOUT_MS = 15_000
+        const val READ_TIMEOUT_MS = 30_000
     }
 }

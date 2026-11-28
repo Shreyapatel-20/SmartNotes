@@ -31,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.smartnotes.ai.BuildConfig
 import com.smartnotes.ai.R
 import com.smartnotes.ai.ui.theme.Lufga
 import com.smartnotes.ai.viewmodel.AiChatViewModel
@@ -41,7 +42,7 @@ private val DarkText = Color(0xFF171717)
 @Composable
 fun ChattingScreen(
     onBackClick: () -> Unit = {},
-    viewModel: AiChatViewModel = remember { AiChatViewModel() }
+    viewModel: AiChatViewModel = remember { AiChatViewModel(BuildConfig.GEMINI_API_KEY) }
 ) {
     var messageText by remember { mutableStateOf("") }
     val uiState by viewModel.uiState.collectAsState()
@@ -247,6 +248,7 @@ fun ChattingScreen(
             }
         }
     }
+
 }
 
 @Composable
