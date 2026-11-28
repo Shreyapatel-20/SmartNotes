@@ -54,7 +54,9 @@ fun NotesScreen(
     onNavigateToMeetingLinks: () -> Unit = {},
     onNavigateToRecordingFiles: () -> Unit = {},
     onNavigateToImageFiles: () -> Unit = {},
-    onNavigateUrlFiles: () -> Unit = {}
+    onNavigateUrlFiles: () -> Unit = {},
+    onNavigateToAiChat: () -> Unit = {},
+    onNavigateToProfile: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
@@ -324,8 +326,10 @@ fun NotesScreen(
             BottomNavigationBar(
                 selectedIndex = 1,
                 onItemSelected = { index ->
-                    if (index == 0) {
-                        onNavigateToHome()
+                    when (index) {
+                        0 -> onNavigateToHome()
+                        2 -> onNavigateToAiChat()
+                        3 -> onNavigateToProfile()
                     }
                 }
             )

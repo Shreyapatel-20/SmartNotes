@@ -34,6 +34,8 @@ import com.smartnotes.ai.Screens.audio.RecordingFilesScreen
 import com.smartnotes.ai.Screens.auth.RegisterScreen
 import com.smartnotes.ai.Screens.meetings.ScheduleTimelineScreen
 import com.smartnotes.ai.Screens.youtube.YouTubeNotesScreen
+import com.smartnotes.ai.Screens.ai.AiChatScreen
+import com.smartnotes.ai.Screens.ai.ChattingScreen
 import com.smartnotes.ai.Screens.youtube.UrlFilesScreen
 import com.smartnotes.ai.db.UserDatabaseHelper
 
@@ -103,6 +105,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onNavigateToProfile = {
                             currentScreen = "profile"
+                        },
+                        onNavigateToAiChat = {
+                            currentScreen = "ai_chat"
                         }
                     )
                 }
@@ -136,6 +141,12 @@ class MainActivity : ComponentActivity() {
                         },
                         onNavigateToYouTubeNotes = {
                             currentScreen = "youtube_notes"
+                        },
+                        onNavigateToAiChat = {
+                            currentScreen = "ai_chat"
+                        },
+                        onNavigateToProfile = {
+                            currentScreen = "profile"
                         }
                     )
                 }
@@ -484,8 +495,34 @@ class MainActivity : ComponentActivity() {
                             when (index) {
                                 0 -> currentScreen = "home"
                                 1 -> currentScreen = "notes_options"
+                                2 -> currentScreen = "ai_chat"
                                 3 -> currentScreen = "profile"
                             }
+                        }
+                    )
+                }
+
+                "ai_chat" -> {
+                    AiChatScreen(
+                        onSettingsClick = {},
+                        onStartChatClick = {
+                            currentScreen = "ai_chatting"
+                        },
+                        onBottomNavItemSelected = { index ->
+                            when (index) {
+                                0 -> currentScreen = "home"
+                                1 -> currentScreen = "notes_options"
+                                2 -> currentScreen = "ai_chat"
+                                3 -> currentScreen = "profile"
+                            }
+                        }
+                    )
+                }
+
+                "ai_chatting" -> {
+                    ChattingScreen(
+                        onBackClick = {
+                            currentScreen = "ai_chat"
                         }
                     )
                 }

@@ -55,7 +55,8 @@ fun HomeScreen(
     onNavigateToAudioUpload: () -> Unit = {},
     onNavigateToDocumentFiles: () -> Unit = {},
     onNavigateToMeetingLinks: () -> Unit = {},
-    onNavigateToProfile: () -> Unit = {}
+    onNavigateToProfile: () -> Unit = {},
+    onNavigateToAiChat: () -> Unit = {}
 ) {
     val isPreview = LocalInspectionMode.current
     val context = LocalContext.current
@@ -530,6 +531,7 @@ Column(
                 onItemSelected = { index ->
                     when (index) {
                         1 -> onNavigateToNotes()
+                        2 -> onNavigateToAiChat()
                         3 -> onNavigateToProfile()
                     }
                 }
